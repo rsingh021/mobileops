@@ -26,4 +26,4 @@ The goal of this project is to help administrators manage facility records, imag
 - Vite
 - JavaScript
 - Supabase planned
-- Tailwind CSS plannedn 
+- Tailwind CSS planned
