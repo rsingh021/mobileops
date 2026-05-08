@@ -1,16 +1,29 @@
-# React + Vite
+# MobileOps
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+MobileOps is a full-stack operations dashboard prototype for a mobile diagnostic imaging company.
 
-Currently, two official plugins are available:
+The goal of this project is to help administrators manage facility records, imaging orders, scheduling status, report turnaround, and billing visibility.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Current Features
 
-## React Compiler
+- Dashboard overview cards
+- Recent imaging orders table
+- Fake demo data for early UI development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Planned Features
 
-## Expanding the ESLint configuration
+- Facility management
+- Order creation form
+- Order status updates
+- Search and filtering
+- Supabase database integration
+- Authentication
+- Deployment
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Tech Stack
+
+- React
+- Vite
+- JavaScript
+- Supabase planned
+- Tailwind CSS plannedn 

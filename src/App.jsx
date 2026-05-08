@@ -1,116 +1,73 @@
-function App() {
+// App.jsx — The root layout shell of the entire application.
+// Three responsibilities:
+//   1. Wrap everything in BrowserRouter so React Router can track the URL.
+//   2. Wrap everything in OrdersProvider so any page can read/write the orders list.
+//   3. Render the persistent layout (Sidebar + Header) around whichever page is active.
+
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+// BrowserRouter — listens to the browser's URL and provides routing context to everything inside it
+// Routes      — looks at the current URL and renders only the matching Route
+// Route       — pairs a URL path (e.g. "/orders") with a page component (e.g. <Orders />)
+
+import { OrdersProvider } from './context/OrdersContext'
+// OrdersProvider holds the shared orders array in state.
+// It must wrap every component that calls useOrders() — so it goes here at the top level.
+
+import Sidebar from './components/Sidebar' // Left nav — always visible
+import Header from './components/Header'   // Top bar — always visible
+
+// Page components — each one is rendered when its URL path is matched by a <Route>
+import Dashboard  from './pages/Dashboard'
+import Facilities from './pages/Facilities'
+import Orders     from './pages/Orders'
+import Schedule   from './pages/Schedule'
+import Reports    from './pages/Reports'
+import Billing    from './pages/Billing'
+import NewOrder   from './pages/NewOrder'
+
+export default function App() {
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#f8fafc", padding: "32px" }}>
-      <header style={{ marginBottom: "32px" }}>
-        <h1 style={{ fontSize: "32px", fontWeight: "bold", marginBottom: "8px" }}>
-          MobileOps Dashboard
-        </h1>
-        <p style={{ color: "#64748b" }}>
-          Operations dashboard prototype for a mobile diagnostic imaging company.
-        </p>
-      </header>
+    // BrowserRouter must be the outermost wrapper so every component inside can use
+    // routing hooks (useLocation, NavLink, useNavigate, etc.)
+    <BrowserRouter>
 
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "32px" }}>
-        <div style={cardStyle}>
-          <p style={labelStyle}>Pending Orders</p>
-          <h2 style={numberStyle}>12</h2>
+      {/* OrdersProvider sits just inside BrowserRouter so it can eventually use
+          routing too if needed, and so every page below can call useOrders(). */}
+      <OrdersProvider>
+
+        {/* Full-screen flex row: Sidebar on the left, everything else on the right.
+            overflow-hidden prevents double scrollbars — only <main> scrolls. */}
+        <div className="flex h-screen bg-slate-50 overflow-hidden">
+
+          {/* Sidebar is fixed-width and never scrolls */}
+          <Sidebar />
+
+          {/* Right column: Header on top, scrollable page content below */}
+          <div className="flex flex-col flex-1 min-w-0">
+
+            {/* Header stays pinned at the top — shrink-0 prevents it from collapsing */}
+            <Header />
+
+            {/* Main content area — this is the only part that scrolls when content is tall */}
+            <main className="flex-1 overflow-y-auto p-6">
+
+              {/* Routes checks the URL and renders the first matching Route.
+                  Only one page renders at a time. */}
+              <Routes>
+                <Route path="/"           element={<Dashboard />}  />
+                <Route path="/facilities" element={<Facilities />} />
+                <Route path="/orders"     element={<Orders />}     />
+                <Route path="/orders/new" element={<NewOrder />}   />
+                <Route path="/schedule"   element={<Schedule />}   />
+                <Route path="/reports"    element={<Reports />}    />
+                <Route path="/billing"    element={<Billing />}    />
+              </Routes>
+
+            </main>
+          </div>
         </div>
 
-        <div style={cardStyle}>
-          <p style={labelStyle}>Scheduled Today</p>
-          <h2 style={numberStyle}>4</h2>
-        </div>
-
-        <div style={cardStyle}>
-          <p style={labelStyle}>Reports Due</p>
-          <h2 style={numberStyle}>3</h2>
-        </div>
-
-        <div style={cardStyle}>
-          <p style={labelStyle}>Billing Pending</p>
-          <h2 style={numberStyle}>7</h2>
-        </div>
-      </section>
-
-      <section style={cardStyle}>
-        <h2 style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "16px" }}>
-          Recent Imaging Orders
-        </h2>
-
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid #e2e8f0" }}>
-              <th style={thStyle}>Facility</th>
-              <th style={thStyle}>Exam Type</th>
-              <th style={thStyle}>Patient</th>
-              <th style={thStyle}>Status</th>
-              <th style={thStyle}>Billing</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <tr style={rowStyle}>
-              <td style={tdStyle}>Peachtree Rehab Center</td>
-              <td style={tdStyle}>Venous Doppler</td>
-              <td style={tdStyle}>J.D.</td>
-              <td style={tdStyle}>Scheduled</td>
-              <td style={tdStyle}>Pending</td>
-            </tr>
-
-            <tr style={rowStyle}>
-              <td style={tdStyle}>Gwinnett Senior Care</td>
-              <td style={tdStyle}>Echocardiogram</td>
-              <td style={tdStyle}>M.S.</td>
-              <td style={tdStyle}>Report Sent</td>
-              <td style={tdStyle}>Ready</td>
-            </tr>
-
-            <tr style={rowStyle}>
-              <td style={tdStyle}>North Atlanta Rehab</td>
-              <td style={tdStyle}>Abdominal Ultrasound</td>
-              <td style={tdStyle}>A.K.</td>
-              <td style={tdStyle}>Requested</td>
-              <td style={tdStyle}>Not Started</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-    </div>
-  );
+      </OrdersProvider>
+    </BrowserRouter>
+  )
 }
-
-const cardStyle = {
-  backgroundColor: "white",
-  borderRadius: "12px",
-  padding: "20px",
-  boxShadow: "0 1px 3px rgba(15, 23, 42, 0.12)",
-  border: "1px solid #e2e8f0",
-};
-
-const labelStyle = {
-  color: "#64748b",
-  fontSize: "14px",
-  marginBottom: "8px",
-};
-
-const numberStyle = {
-  fontSize: "28px",
-  fontWeight: "bold",
-};
-
-const thStyle = {
-  padding: "12px",
-  color: "#475569",
-  fontSize: "14px",
-};
-
-const tdStyle = {
-  padding: "12px",
-  fontSize: "14px",
-};
-
-const rowStyle = {
-  borderBottom: "1px solid #f1f5f9",
-};
-
-export default App;
