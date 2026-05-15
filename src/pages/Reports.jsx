@@ -1,20 +1,30 @@
 // Reports.jsx — The reports page ("/reports").
-// Shows orders that are in the "Completed" or "Report Sent" state,
-// so the admin can track which reports still need to be delivered.
+// Shows orders that are "Completed" or "Report Sent" so the admin can track
+// which reports still need to be delivered.
 
-import { orders } from '../data/orders'
+import { useOrders } from '../context/OrdersContext'
 import StatusBadge from '../components/StatusBadge'
 
-// Pre-filter the orders array to only those relevant to the report workflow.
-// "Completed" = exam done, report not sent yet.
-// "Report Sent" = report delivered to the facility.
-// This runs once when the module loads, not on every render.
-const reportOrders = orders.filter(o =>
-  o.status === 'Completed' || o.status === 'Report Sent'
-)
-
 export default function Reports() {
-  // Derive counts for the stat cards directly from the main orders array
+  // Get the live orders list from context (backed by Supabase)
+  const { orders, loading, error } = useOrders()
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+      Loading reports...
+    </div>
+  )
+
+  if (error) return (
+    <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+      Failed to load data: {error}
+    </div>
+  )
+
+  // Filter inside the component (not at module level) so it uses the live orders array
+  // "Completed" = exam done, report not sent yet
+  // "Report Sent" = report delivered to the facility
+  const reportOrders   = orders.filter(o => o.status === 'Completed' || o.status === 'Report Sent')
   const awaitingReport = orders.filter(o => o.status === 'Completed').length
   const reportsSent    = orders.filter(o => o.status === 'Report Sent').length
 
@@ -36,7 +46,7 @@ export default function Reports() {
           <p className="text-xs text-green-600 mt-1">Delivered to facility</p>
         </div>
 
-        {/* Hardcoded turnaround average — will be calculated from real timestamps later */}
+        {/* Hardcoded for now — will calculate from real timestamps when that field is added */}
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <p className="text-sm text-slate-500">Avg Turnaround</p>
           <p className="text-3xl font-bold text-slate-800 mt-1">18h</p>
@@ -51,7 +61,6 @@ export default function Reports() {
           <h3 className="font-semibold text-slate-800">Report Queue</h3>
         </div>
 
-        {/* Empty state if there are no completed/sent orders */}
         {reportOrders.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-slate-400">No reports pending.</p>
         ) : (
@@ -72,7 +81,6 @@ export default function Reports() {
                   <td className="px-5 py-3.5 text-sm text-slate-600">{order.examType}</td>
                   <td className="px-5 py-3.5 text-sm text-slate-600">{order.patientInitials}</td>
                   <td className="px-5 py-3.5"><StatusBadge status={order.status} /></td>
-                  {/* Placeholder — will trigger a file upload or status update when built */}
                   <td className="px-5 py-3.5">
                     <button className="text-xs text-blue-600 hover:text-blue-700 font-medium">Upload Report</button>
                   </td>
@@ -83,7 +91,6 @@ export default function Reports() {
         )}
       </div>
 
-      {/* Coming soon notice */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
         <p className="text-sm font-semibold text-amber-800">Coming next</p>
         <p className="text-sm text-amber-700 mt-0.5">PDF report upload, 24-hour turnaround alerts, and radiologist assignment.</p>

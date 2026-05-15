@@ -1,21 +1,11 @@
 // NewOrder.jsx — The new order form page ("/orders/new").
-// Lets the admin fill in details for a new imaging visit and submit it.
-// On submit, the order is added to the shared context and the user is sent to /orders.
+// Submits a new order to Supabase via the addOrder function in context.
 
 import { useState } from 'react'
-// useState stores the form field values so React can track what the user types
-
 import { useNavigate } from 'react-router-dom'
-// useNavigate returns a function that programmatically changes the URL.
-// Used here to redirect to /orders after a successful form submission.
-
 import { facilities } from '../data/orders'
-// The facility list is used to populate the Facility dropdown.
-
 import { useOrders } from '../context/OrdersContext'
-// useOrders gives us the addOrder function to add the new order to the shared list.
 
-// Dropdown options for Exam Type
 const examTypes = [
   'Venous Doppler',
   'Echocardiogram',
@@ -25,78 +15,65 @@ const examTypes = [
   'Renal Ultrasound',
 ]
 
-// Dropdown options for Order Status
-const statuses = [
-  'Requested',
-  'Scheduled',
-  'Completed',
-  'Report Sent',
-]
+const statuses = ['Requested', 'Scheduled', 'Completed', 'Report Sent']
 
-// Dropdown options for Billing Status
-const billingStatuses = [
-  'Not Started',
-  'Pending',
-  'Ready',
-]
+const billingStatuses = ['Not Started', 'Pending', 'Ready']
 
 export default function NewOrder() {
-  // navigate('/orders') will send the user to the orders page after submission
   const navigate = useNavigate()
-
-  // Pull addOrder out of context — this is what saves the order to the shared list
   const { addOrder } = useOrders()
 
-  // formData holds the current value of every field in the form.
-  // Each key matches the `name` attribute on its input/select element.
+  // submitting = true while waiting for Supabase to respond — disables the button to prevent double-submit
+  // submitError = holds an error message if the Supabase insert fails
+  const [submitting, setSubmitting]   = useState(false)
+  const [submitError, setSubmitError] = useState(null)
+
   const [formData, setFormData] = useState({
-    facility:        facilities[0]?.name ?? '',           // Default to first facility; ?? handles empty list
+    facility:        facilities[0]?.name ?? '',
     examType:        'Venous Doppler',
     patientInitials: '',
     status:          'Requested',
     billingStatus:   'Not Started',
-    date:            new Date().toISOString().slice(0, 10), // Today's date in "YYYY-MM-DD" format
+    date:            new Date().toISOString().slice(0, 10), // Today in "YYYY-MM-DD" format
   })
 
-  // handleChange — single handler for every input/select in the form.
-  // It reads the `name` attribute of the element that changed,
-  // then updates only that field in formData (leaving the rest untouched).
+  // Single handler for every input/select — reads `name` attribute to know which field changed
   function handleChange(event) {
     const { name, value } = event.target
-
-    setFormData(currentData => ({
-      ...currentData,  // Copy all existing fields
-      [name]: value,   // Overwrite only the field that changed ([name] is a computed property key)
-    }))
+    setFormData(current => ({ ...current, [name]: value }))
   }
 
-  // handleSubmit — runs when the user clicks "Create Order".
-  function handleSubmit(event) {
-    event.preventDefault() // Stops the browser from doing a full page reload on form submit
+  // handleSubmit is async because addOrder now makes a network call to Supabase
+  async function handleSubmit(event) {
+    event.preventDefault() // Prevent browser from reloading the page on form submit
 
-    // Basic validation — patient initials are required
     if (!formData.patientInitials.trim()) {
       alert('Please enter patient initials.')
-      return // Stop here; don't submit
+      return
     }
 
-    // Add the order to the shared context state.
-    // .trim() removes accidental leading/trailing spaces.
-    // .toUpperCase() normalizes "j.d." → "J.D."
-    addOrder({
-      ...formData,
-      patientInitials: formData.patientInitials.trim().toUpperCase(),
-    })
+    setSubmitting(true)  // Disable the submit button
+    setSubmitError(null) // Clear any previous error
 
-    // Redirect to the orders page so the user can see the new order in the list
-    navigate('/orders')
+    try {
+      // addOrder sends the data to Supabase and updates the shared context state
+      await addOrder({
+        ...formData,
+        patientInitials: formData.patientInitials.trim().toUpperCase(),
+      })
+
+      // Only navigate away if the insert succeeded
+      navigate('/orders')
+    } catch (err) {
+      // If Supabase returns an error, show it on the form instead of crashing
+      setSubmitError(err.message)
+      setSubmitting(false)
+    }
   }
 
   return (
-    // max-w-3xl keeps the form from stretching too wide on large screens
     <div className="mx-auto max-w-3xl space-y-4">
 
-      {/* Page heading */}
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Create New Order</h1>
         <p className="mt-1 text-sm text-slate-500">
@@ -104,57 +81,51 @@ export default function NewOrder() {
         </p>
       </div>
 
-      {/* The form — onSubmit is wired to handleSubmit above */}
+      {/* Show a Supabase error below the heading if the insert failed */}
+      {submitError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          Error saving order: {submitError}
+        </div>
+      )}
+
       <form
         onSubmit={handleSubmit}
         className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5"
       >
 
-        {/* ── Facility ──────────────────────────────────────── */}
+        {/* ── Facility ────────────────────────────────────── */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
-            Facility
-          </label>
-          {/* name="facility" must match the key in formData for handleChange to work */}
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">Facility</label>
           <select
             name="facility"
             value={formData.facility}
             onChange={handleChange}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           >
-            {facilities.map(facility => (
-              <option key={facility.id} value={facility.name}>
-                {facility.name}
-              </option>
+            {facilities.map(f => (
+              <option key={f.id} value={f.name}>{f.name}</option>
             ))}
           </select>
         </div>
 
-        {/* ── Exam Type ─────────────────────────────────────── */}
+        {/* ── Exam Type ───────────────────────────────────── */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
-            Exam Type
-          </label>
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">Exam Type</label>
           <select
             name="examType"
             value={formData.examType}
             onChange={handleChange}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           >
-            {examTypes.map(examType => (
-              <option key={examType} value={examType}>
-                {examType}
-              </option>
+            {examTypes.map(t => (
+              <option key={t} value={t}>{t}</option>
             ))}
           </select>
         </div>
 
-        {/* ── Patient Initials ──────────────────────────────── */}
+        {/* ── Patient Initials ────────────────────────────── */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
-            Patient Initials
-          </label>
-          {/* type="text" is the default so it's omitted here */}
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">Patient Initials</label>
           <input
             name="patientInitials"
             value={formData.patientInitials}
@@ -162,51 +133,38 @@ export default function NewOrder() {
             placeholder="Example: J.D."
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           />
-          <p className="mt-1 text-xs text-slate-400">
-            Use fake initials only. Do not enter real patient information.
-          </p>
+          <p className="mt-1 text-xs text-slate-400">Use fake initials only. Do not enter real patient information.</p>
         </div>
 
-        {/* ── Status / Billing Status / Date (3 columns) ───── */}
+        {/* ── Status / Billing Status / Date ──────────────── */}
         <div className="grid gap-4 md:grid-cols-3">
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Status
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Status</label>
             <select
               name="status"
               value={formData.status}
               onChange={handleChange}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             >
-              {statuses.map(status => (
-                <option key={status} value={status}>{status}</option>
-              ))}
+              {statuses.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Billing Status
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Billing Status</label>
             <select
               name="billingStatus"
               value={formData.billingStatus}
               onChange={handleChange}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             >
-              {billingStatuses.map(status => (
-                <option key={status} value={status}>{status}</option>
-              ))}
+              {billingStatuses.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
-              Date
-            </label>
-            {/* type="date" renders a native date picker in the browser */}
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label>
             <input
               type="date"
               name="date"
@@ -218,27 +176,26 @@ export default function NewOrder() {
 
         </div>
 
-        {/* ── Form actions ──────────────────────────────────── */}
+        {/* ── Form actions ────────────────────────────────── */}
         <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
-
-          {/* type="button" prevents this from accidentally submitting the form */}
           <button
             type="button"
-            onClick={() => navigate('/orders')} // Go back to orders without saving
+            onClick={() => navigate('/orders')}
             className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
           >
             Cancel
           </button>
 
-          {/* type="submit" triggers onSubmit on the <form> element above */}
+          {/* disabled while the Supabase insert is in flight to prevent double-submit */}
           <button
             type="submit"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            disabled={submitting}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Create Order
+            {submitting ? 'Saving...' : 'Create Order'}
           </button>
-
         </div>
+
       </form>
     </div>
   )

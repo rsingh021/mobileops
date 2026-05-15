@@ -13,10 +13,22 @@ import StatusBadge from '../components/StatusBadge'
 const statuses = ['All', 'Requested', 'Scheduled', 'Completed', 'Report Sent']
 
 export default function Orders() {
-  const { orders } = useOrders()
+  const { orders, loading, error } = useOrders()
   // filter = the currently selected status button (starts on 'All')
   // setFilter = the function that updates filter when a button is clicked
   const [filter, setFilter] = useState('All')
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+      Loading orders...
+    </div>
+  )
+
+  if (error) return (
+    <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+      Failed to load orders: {error}
+    </div>
+  )
 
   // Compute which orders to display based on the selected filter.
   // If 'All' is selected, show every order.
