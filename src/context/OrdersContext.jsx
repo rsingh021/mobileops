@@ -95,9 +95,35 @@ export function OrdersProvider({ children }) {
     return toJS(data)
   }
 
+  // updateOrder — updates specific fields on an existing order in Supabase and local state.
+  // `changes` is a partial JS object, e.g. { status: 'Completed' } or { billingStatus: 'Ready' }
+  async function updateOrder(id, changes) {
+    // Build a snake_case object containing only the fields that were passed in.
+    // Fields not included in `changes` are left untouched in the database.
+    const dbChanges = {
+      ...(changes.facility        !== undefined && { facility:         changes.facility }),
+      ...(changes.examType        !== undefined && { exam_type:        changes.examType }),
+      ...(changes.patientInitials !== undefined && { patient_initials: changes.patientInitials }),
+      ...(changes.status          !== undefined && { status:           changes.status }),
+      ...(changes.billingStatus   !== undefined && { billing_status:   changes.billingStatus }),
+      ...(changes.date            !== undefined && { date:             changes.date }),
+    }
+
+    const { data, error } = await supabase
+      .from('orders')
+      .update(dbChanges)
+      .eq('id', id)  // Only update the row with this id
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // Swap the updated order in local state so the UI reflects the change immediately
+    setOrders(current => current.map(o => o.id === id ? toJS(data) : o))
+  }
+
   return (
-    // Provide orders, loading, error, and addOrder to every component inside OrdersProvider
-    <OrdersContext.Provider value={{ orders, loading, error, addOrder }}>
+    <OrdersContext.Provider value={{ orders, loading, error, addOrder, updateOrder }}>
       {children}
     </OrdersContext.Provider>
   )
