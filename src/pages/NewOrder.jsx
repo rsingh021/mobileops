@@ -1,10 +1,10 @@
 // NewOrder.jsx — The new order form page ("/orders/new").
 // Submits a new order to Supabase via the addOrder function in context.
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { facilities } from '../data/orders'
 import { useOrders } from '../context/OrdersContext'
+import { useFacilities } from '../context/FacilitiesContext'
 
 const examTypes = [
   'Venous Doppler',
@@ -22,6 +22,7 @@ const billingStatuses = ['Not Started', 'Pending', 'Ready']
 export default function NewOrder() {
   const navigate = useNavigate()
   const { addOrder } = useOrders()
+  const { facilities } = useFacilities()
 
   // submitting = true while waiting for Supabase to respond — disables the button to prevent double-submit
   // submitError = holds an error message if the Supabase insert fails
@@ -29,13 +30,20 @@ export default function NewOrder() {
   const [submitError, setSubmitError] = useState(null)
 
   const [formData, setFormData] = useState({
-    facility:        facilities[0]?.name ?? '',
+    facility:        '',  // Set to first facility once they load (see useEffect below)
     examType:        'Venous Doppler',
     patientInitials: '',
     status:          'Requested',
     billingStatus:   'Not Started',
     date:            new Date().toISOString().slice(0, 10), // Today in "YYYY-MM-DD" format
   })
+
+  // Once facilities load from Supabase, set the first one as the default selection
+  useEffect(() => {
+    if (facilities.length > 0 && !formData.facility) {
+      setFormData(current => ({ ...current, facility: facilities[0].name }))
+    }
+  }, [facilities])
 
   // Single handler for every input/select — reads `name` attribute to know which field changed
   function handleChange(event) {

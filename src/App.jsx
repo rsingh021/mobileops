@@ -10,6 +10,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 // Route       — pairs a URL path (e.g. "/orders") with a page component (e.g. <Orders />)
 
 import { OrdersProvider } from './context/OrdersContext'
+import { FacilitiesProvider } from './context/FacilitiesContext'
 // OrdersProvider holds the shared orders array in state.
 // It must wrap every component that calls useOrders() — so it goes here at the top level.
 
@@ -33,6 +34,7 @@ export default function App() {
 
       {/* OrdersProvider sits just inside BrowserRouter so it can eventually use
           routing too if needed, and so every page below can call useOrders(). */}
+      <FacilitiesProvider>
       <OrdersProvider>
 
         {/* Full-screen flex row: Sidebar on the left, everything else on the right.
@@ -68,6 +70,7 @@ export default function App() {
         </div>
 
       </OrdersProvider>
+      </FacilitiesProvider>
     </BrowserRouter>
   )
 }
