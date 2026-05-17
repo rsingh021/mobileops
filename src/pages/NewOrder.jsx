@@ -1,10 +1,12 @@
-// NewOrder.jsx — The new order form page ("/orders/new").
-// Submits a new order to Supabase via the addOrder function in context.
+// NewOrder.jsx — Two-step order creation flow.
+// Step 1: Find or create the patient.
+// Step 2: Fill in order details, then submit linked to the patient.
 
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
 import { useFacilities } from '../context/FacilitiesContext'
+import { supabase } from '../lib/supabase'
 
 const examTypes = [
   'Venous Doppler',
@@ -15,196 +17,428 @@ const examTypes = [
   'Renal Ultrasound',
 ]
 
-const statuses = ['Requested', 'Scheduled', 'Completed', 'Report Sent']
-
-const billingStatuses = ['Not Started', 'Pending', 'Ready']
+const statusOptions  = ['Requested', 'Scheduled', 'Completed', 'Report Sent', 'Billed']
+const billingOptions = ['Not Started', 'Pending', 'Ready']
 
 export default function NewOrder() {
   const navigate = useNavigate()
-  const { addOrder } = useOrders()
-  const { facilities } = useFacilities()
+  const { addOrder }    = useOrders()
+  const { facilities }  = useFacilities()
 
-  // submitting = true while waiting for Supabase to respond — disables the button to prevent double-submit
-  // submitError = holds an error message if the Supabase insert fails
-  const [submitting, setSubmitting]   = useState(false)
-  const [submitError, setSubmitError] = useState(null)
+  // ── Step tracking ─────────────────────────────────────────────────────────
+  // step 1 = patient search/create, step 2 = order details
+  const [step, setStep] = useState(1)
 
-  const [formData, setFormData] = useState({
-    facility:        '',  // Set to first facility once they load (see useEffect below)
-    examType:        'Venous Doppler',
-    patientInitials: '',
-    status:          'Requested',
-    billingStatus:   'Not Started',
-    date:            new Date().toISOString().slice(0, 10), // Today in "YYYY-MM-DD" format
+  // ── Step 1 state ──────────────────────────────────────────────────────────
+  const [searchFirst, setSearchFirst] = useState('')
+  const [searchLast,  setSearchLast]  = useState('')
+  const [searchResults, setSearchResults] = useState([]) // null = not searched yet
+  const [searched, setSearched]           = useState(false)
+  const [searching, setSearching]         = useState(false)
+
+  // New-patient form (shown when no match is found or user wants to create new)
+  const [newPatientDob,   setNewPatientDob]   = useState('')
+  const [newPatientPhone, setNewPatientPhone] = useState('')
+  const [creatingPatient, setCreatingPatient] = useState(false)
+  const [patientError,    setPatientError]    = useState(null)
+
+  // The patient chosen or created in step 1
+  const [selectedPatient, setSelectedPatient] = useState(null)
+
+  // ── Step 2 state ──────────────────────────────────────────────────────────
+  const [orderData, setOrderData] = useState({
+    facility:      '',
+    examType:      'Venous Doppler',
+    status:        'Requested',
+    billingStatus: 'Not Started',
+    date:          new Date().toISOString().slice(0, 10),
   })
+  const [submitting,   setSubmitting]   = useState(false)
+  const [submitError,  setSubmitError]  = useState(null)
 
-  // Once facilities load from Supabase, set the first one as the default selection
+  // Default facility once loaded
   useEffect(() => {
-    if (facilities.length > 0 && !formData.facility) {
-      setFormData(current => ({ ...current, facility: facilities[0].name }))
+    if (facilities.length > 0 && !orderData.facility) {
+      setOrderData(cur => ({ ...cur, facility: facilities[0].name }))
     }
   }, [facilities])
 
-  // Single handler for every input/select — reads `name` attribute to know which field changed
-  function handleChange(event) {
-    const { name, value } = event.target
-    setFormData(current => ({ ...current, [name]: value }))
+  // ── Step 1 helpers ────────────────────────────────────────────────────────
+
+  async function handleSearch(e) {
+    e.preventDefault()
+    if (!searchFirst.trim() || !searchLast.trim()) return
+
+    setSearching(true)
+    setPatientError(null)
+
+    const { data, error } = await supabase
+      .from('patients')
+      .select('id, first_name, last_name, date_of_birth, phone')
+      .ilike('first_name', `%${searchFirst.trim()}%`)
+      .ilike('last_name',  `%${searchLast.trim()}%`)
+      .order('last_name', { ascending: true })
+
+    setSearching(false)
+    setSearched(true)
+
+    if (error) {
+      setPatientError(error.message)
+      setSearchResults([])
+    } else {
+      setSearchResults(data)
+    }
   }
 
-  // handleSubmit is async because addOrder now makes a network call to Supabase
-  async function handleSubmit(event) {
-    event.preventDefault() // Prevent browser from reloading the page on form submit
+  function selectPatient(row) {
+    setSelectedPatient({
+      id:        row.id,
+      firstName: row.first_name,
+      lastName:  row.last_name,
+      dob:       row.date_of_birth,
+      phone:     row.phone,
+    })
+    setStep(2)
+  }
 
-    if (!formData.patientInitials.trim()) {
-      alert('Please enter patient initials.')
+  async function handleCreatePatient() {
+    setCreatingPatient(true)
+    setPatientError(null)
+
+    const { data, error } = await supabase
+      .from('patients')
+      .insert({
+        first_name:    searchFirst.trim(),
+        last_name:     searchLast.trim(),
+        date_of_birth: newPatientDob  || null,
+        phone:         newPatientPhone || null,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      // 23505 = unique violation — patient already exists (race condition / duplicate)
+      if (error.code === '23505') {
+        const { data: existing } = await supabase
+          .from('patients')
+          .select('id, first_name, last_name, date_of_birth, phone')
+          .ilike('first_name', searchFirst.trim())
+          .ilike('last_name',  searchLast.trim())
+          .limit(1)
+          .single()
+
+        if (existing) {
+          setCreatingPatient(false)
+          selectPatient(existing)
+          return
+        }
+      }
+      setPatientError(error.message)
+      setCreatingPatient(false)
       return
     }
 
-    setSubmitting(true)  // Disable the submit button
-    setSubmitError(null) // Clear any previous error
+    setCreatingPatient(false)
+    selectPatient(data)
+  }
+
+  // ── Step 2 helpers ────────────────────────────────────────────────────────
+
+  function handleOrderChange(e) {
+    const { name, value } = e.target
+    setOrderData(cur => ({ ...cur, [name]: value }))
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSubmitting(true)
+    setSubmitError(null)
+
+    const initials =
+      `${selectedPatient.firstName[0].toUpperCase()}.${selectedPatient.lastName[0].toUpperCase()}.`
 
     try {
-      // addOrder sends the data to Supabase and updates the shared context state
       await addOrder({
-        ...formData,
-        patientInitials: formData.patientInitials.trim().toUpperCase(),
+        ...orderData,
+        patientId:       selectedPatient.id,
+        patientInitials: initials,
       })
-
-      // Only navigate away if the insert succeeded
       navigate('/orders')
     } catch (err) {
-      // If Supabase returns an error, show it on the form instead of crashing
       setSubmitError(err.message)
       setSubmitting(false)
     }
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className="mx-auto max-w-2xl space-y-5">
 
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Create New Order</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Add a new imaging order to the MobileOps workflow.
-        </p>
+        <p className="mt-1 text-sm text-slate-500">Add a new imaging order to the workflow.</p>
       </div>
 
-      {/* Show a Supabase error below the heading if the insert failed */}
-      {submitError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Error saving order: {submitError}
+      {/* ── Step indicator ────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3">
+        {[1, 2].map(n => (
+          <div key={n} className="flex items-center gap-2">
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+              step === n
+                ? 'bg-blue-600 text-white'
+                : step > n
+                  ? 'bg-green-500 text-white'
+                  : 'bg-slate-200 text-slate-500'
+            }`}>
+              {step > n ? '✓' : n}
+            </div>
+            <span className={`text-sm font-medium ${step >= n ? 'text-slate-700' : 'text-slate-400'}`}>
+              {n === 1 ? 'Patient' : 'Order Details'}
+            </span>
+            {n < 2 && <div className="w-10 h-px bg-slate-200 mx-1" />}
+          </div>
+        ))}
+      </div>
+
+      {/* ── STEP 1 — Patient search / create ──────────────────────────────── */}
+      {step === 1 && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+
+          <h2 className="font-semibold text-slate-800">Find or Create Patient</h2>
+
+          {/* Search form */}
+          <form onSubmit={handleSearch} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">First Name</label>
+                <input
+                  value={searchFirst}
+                  onChange={e => { setSearchFirst(e.target.value); setSearched(false) }}
+                  placeholder="First"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">Last Name</label>
+                <input
+                  value={searchLast}
+                  onChange={e => { setSearchLast(e.target.value); setSearched(false) }}
+                  placeholder="Last"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={searching || !searchFirst.trim() || !searchLast.trim()}
+              className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {searching ? 'Searching...' : 'Search'}
+            </button>
+          </form>
+
+          {patientError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+              {patientError}
+            </div>
+          )}
+
+          {/* Search results */}
+          {searched && searchResults.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-600">
+                {searchResults.length} patient{searchResults.length !== 1 ? 's' : ''} found — select one to continue:
+              </p>
+              {searchResults.map(row => (
+                <button
+                  key={row.id}
+                  onClick={() => selectPatient(row)}
+                  className="w-full text-left rounded-lg border border-slate-200 px-4 py-3 hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                >
+                  <p className="text-sm font-medium text-slate-800">
+                    {row.first_name} {row.last_name}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {row.date_of_birth ? `DOB: ${row.date_of_birth}` : 'No DOB on file'}
+                    {row.phone ? `  ·  ${row.phone}` : ''}
+                  </p>
+                </button>
+              ))}
+
+              <p className="text-xs text-slate-400 pt-1">Not the right patient? Fill in the details below to create a new one.</p>
+            </div>
+          )}
+
+          {/* No results — offer to create */}
+          {searched && searchResults.length === 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              No patients found for "{searchFirst} {searchLast}". Fill in the details below to create a new patient record.
+            </div>
+          )}
+
+          {/* Create new patient — shown after a search is run */}
+          {searched && (
+            <div className="space-y-3 border-t border-slate-100 pt-4">
+              <p className="text-sm font-medium text-slate-700">Create new patient: <span className="text-blue-700">{searchFirst} {searchLast}</span></p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Date of Birth <span className="text-slate-400 font-normal">(optional)</span></label>
+                  <input
+                    type="date"
+                    value={newPatientDob}
+                    onChange={e => setNewPatientDob(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Phone <span className="text-slate-400 font-normal">(optional)</span></label>
+                  <input
+                    type="tel"
+                    value={newPatientPhone}
+                    onChange={e => setNewPatientPhone(e.target.value)}
+                    placeholder="(555) 000-0000"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleCreatePatient}
+                disabled={creatingPatient}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {creatingPatient ? 'Creating...' : 'Create Patient & Continue'}
+              </button>
+            </div>
+          )}
+
+          <div className="flex justify-end border-t border-slate-100 pt-4">
+            <button
+              onClick={() => navigate('/orders')}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
-      <form
-        onSubmit={handleSubmit}
-        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5"
-      >
+      {/* ── STEP 2 — Order Details ─────────────────────────────────────────── */}
+      {step === 2 && selectedPatient && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
 
-        {/* ── Facility ────────────────────────────────────── */}
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">Facility</label>
-          <select
-            name="facility"
-            value={formData.facility}
-            onChange={handleChange}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          >
-            {facilities.map(f => (
-              <option key={f.id} value={f.name}>{f.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* ── Exam Type ───────────────────────────────────── */}
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">Exam Type</label>
-          <select
-            name="examType"
-            value={formData.examType}
-            onChange={handleChange}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          >
-            {examTypes.map(t => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* ── Patient Initials ────────────────────────────── */}
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">Patient Initials</label>
-          <input
-            name="patientInitials"
-            value={formData.patientInitials}
-            onChange={handleChange}
-            placeholder="Example: J.D."
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          />
-          <p className="mt-1 text-xs text-slate-400">Use fake initials only. Do not enter real patient information.</p>
-        </div>
-
-        {/* ── Status / Billing Status / Date ──────────────── */}
-        <div className="grid gap-4 md:grid-cols-3">
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Status</label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          {/* Selected patient banner */}
+          <div className="flex items-center justify-between rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-blue-800">
+                {selectedPatient.firstName} {selectedPatient.lastName}
+              </p>
+              <p className="text-xs text-blue-600 mt-0.5">
+                {selectedPatient.dob ? `DOB: ${selectedPatient.dob}` : 'No DOB'}
+                {selectedPatient.phone ? `  ·  ${selectedPatient.phone}` : ''}
+              </p>
+            </div>
+            <button
+              onClick={() => { setStep(1); setSelectedPatient(null) }}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
             >
-              {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+              Change patient
+            </button>
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Billing Status</label>
-            <select
-              name="billingStatus"
-              value={formData.billingStatus}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            >
-              {billingStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
+          {submitError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+              {submitError}
+            </div>
+          )}
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label>
-            <input
-              type="date"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
 
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Facility</label>
+              <select
+                name="facility"
+                value={orderData.facility}
+                onChange={handleOrderChange}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                {facilities.map(f => (
+                  <option key={f.id} value={f.name}>{f.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Exam Type</label>
+              <select
+                name="examType"
+                value={orderData.examType}
+                onChange={handleOrderChange}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                {examTypes.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">Status</label>
+                <select
+                  name="status"
+                  value={orderData.status}
+                  onChange={handleOrderChange}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                >
+                  {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">Billing</label>
+                <select
+                  name="billingStatus"
+                  value={orderData.billingStatus}
+                  onChange={handleOrderChange}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                >
+                  {billingOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label>
+                <input
+                  type="date"
+                  name="date"
+                  value={orderData.date}
+                  onChange={handleOrderChange}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+              <button
+                type="button"
+                onClick={() => navigate('/orders')}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? 'Saving...' : 'Create Order'}
+              </button>
+            </div>
+
+          </form>
         </div>
+      )}
 
-        {/* ── Form actions ────────────────────────────────── */}
-        <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
-          <button
-            type="button"
-            onClick={() => navigate('/orders')}
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-          >
-            Cancel
-          </button>
-
-          {/* disabled while the Supabase insert is in flight to prevent double-submit */}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting ? 'Saving...' : 'Create Order'}
-          </button>
-        </div>
-
-      </form>
     </div>
   )
 }

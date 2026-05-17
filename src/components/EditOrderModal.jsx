@@ -97,6 +97,20 @@ export default function EditOrderModal({ order, onClose }) {
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
 
+          {/* ── Patient info (read-only) ───────────────────── */}
+          {order.patient && (
+            <div className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Patient</p>
+              <p className="text-sm font-medium text-slate-800">
+                {order.patient.firstName} {order.patient.lastName}
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {order.patient.dob ? `DOB: ${order.patient.dob}` : 'No DOB on file'}
+                {order.patient.phone ? `  ·  ${order.patient.phone}` : ''}
+              </p>
+            </div>
+          )}
+
           {/* ── Facility ──────────────────────────────────── */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Facility</label>

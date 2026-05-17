@@ -9,10 +9,9 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 // Routes      — looks at the current URL and renders only the matching Route
 // Route       — pairs a URL path (e.g. "/orders") with a page component (e.g. <Orders />)
 
-import { OrdersProvider } from './context/OrdersContext'
+import { OrdersProvider }     from './context/OrdersContext'
 import { FacilitiesProvider } from './context/FacilitiesContext'
-// OrdersProvider holds the shared orders array in state.
-// It must wrap every component that calls useOrders() — so it goes here at the top level.
+import { PatientsProvider }   from './context/PatientsContext'
 
 import Sidebar from './components/Sidebar' // Left nav — always visible
 import Header from './components/Header'   // Top bar — always visible
@@ -24,7 +23,8 @@ import Orders     from './pages/Orders'
 import Schedule   from './pages/Schedule'
 import Reports    from './pages/Reports'
 import Billing    from './pages/Billing'
-import NewOrder   from './pages/NewOrder'
+import NewOrder     from './pages/NewOrder'
+import OrderDetail  from './pages/OrderDetail'
 
 export default function App() {
   return (
@@ -35,6 +35,7 @@ export default function App() {
       {/* OrdersProvider sits just inside BrowserRouter so it can eventually use
           routing too if needed, and so every page below can call useOrders(). */}
       <FacilitiesProvider>
+      <PatientsProvider>
       <OrdersProvider>
 
         {/* Full-screen flex row: Sidebar on the left, everything else on the right.
@@ -59,7 +60,8 @@ export default function App() {
                 <Route path="/"           element={<Dashboard />}  />
                 <Route path="/facilities" element={<Facilities />} />
                 <Route path="/orders"     element={<Orders />}     />
-                <Route path="/orders/new" element={<NewOrder />}   />
+                <Route path="/orders/new" element={<NewOrder />}     />
+                <Route path="/orders/:id" element={<OrderDetail />} />
                 <Route path="/schedule"   element={<Schedule />}   />
                 <Route path="/reports"    element={<Reports />}    />
                 <Route path="/billing"    element={<Billing />}    />
@@ -70,6 +72,7 @@ export default function App() {
         </div>
 
       </OrdersProvider>
+      </PatientsProvider>
       </FacilitiesProvider>
     </BrowserRouter>
   )

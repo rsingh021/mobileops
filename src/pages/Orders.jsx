@@ -2,6 +2,7 @@
 // Each row has an inline status dropdown and an Edit button that opens a full edit modal.
 
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
 import StatusSelect from '../components/StatusSelect'
 import EditOrderModal from '../components/EditOrderModal'
@@ -10,6 +11,7 @@ const statuses = ['All', 'Requested', 'Scheduled', 'Completed', 'Report Sent', '
 
 export default function Orders() {
   const { orders, loading, error } = useOrders()
+  const navigate                    = useNavigate()
   const [filter, setFilter]         = useState('All')
   // editingOrder holds the order currently open in the edit modal, or null if none
   const [editingOrder, setEditingOrder] = useState(null)
@@ -90,18 +92,24 @@ export default function Orders() {
               </tr>
             ) : (
               visible.map(order => (
-                <tr key={order.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                <tr
+                  key={order.id}
+                  onClick={() => navigate(`/orders/${order.id}`)}
+                  className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
                   <td className="px-5 py-3.5 text-sm font-medium text-slate-800">{order.facility}</td>
                   <td className="px-5 py-3.5 text-sm text-slate-600">{order.examType}</td>
-                  <td className="px-5 py-3.5 text-sm text-slate-600">{order.patientInitials}</td>
-                  <td className="px-5 py-3.5">
-                    {/* Inline status dropdown — saves to Supabase on change */}
+                  <td className="px-5 py-3.5 text-sm text-slate-600">
+                    {order.patient
+                      ? `${order.patient.firstName} ${order.patient.lastName}`
+                      : order.patientInitials}
+                  </td>
+                  <td className="px-5 py-3.5" onClick={e => e.stopPropagation()}>
                     <StatusSelect orderId={order.id} status={order.status} />
                   </td>
                   <td className="px-5 py-3.5 text-sm text-slate-600">{order.billingStatus}</td>
                   <td className="px-5 py-3.5 text-sm text-slate-400">{order.date}</td>
-                  <td className="px-5 py-3.5">
-                    {/* Opens the full edit modal for this row */}
+                  <td className="px-5 py-3.5" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={() => setEditingOrder(order)}
                       className="text-xs text-blue-600 hover:text-blue-700 font-medium"

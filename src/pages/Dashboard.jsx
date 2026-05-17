@@ -70,7 +70,11 @@ export default function Dashboard() {
               <tr key={order.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                 <td className="px-5 py-3.5 text-sm font-medium text-slate-800">{order.facility}</td>
                 <td className="px-5 py-3.5 text-sm text-slate-600">{order.examType}</td>
-                <td className="px-5 py-3.5 text-sm text-slate-600">{order.patientInitials}</td>
+                <td className="px-5 py-3.5 text-sm text-slate-600">
+                  {order.patient
+                    ? `${order.patient.firstName} ${order.patient.lastName}`
+                    : order.patientInitials}
+                </td>
                 <td className="px-5 py-3.5"><StatusBadge status={order.status} /></td>
                 <td className="px-5 py-3.5 text-sm text-slate-600">{order.billingStatus}</td>
                 <td className="px-5 py-3.5 text-sm text-slate-400">{order.date}</td>
