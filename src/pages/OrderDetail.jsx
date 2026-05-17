@@ -29,32 +29,37 @@ export default function OrderDetail() {
   const [history,        setHistory]        = useState([])
   const [historyLoading, setHistoryLoading] = useState(true)
 
+  async function fetchHistory() {
+    const { data } = await supabase
+      .from('status_history')
+      .select('id, from_status, to_status, changed_at')
+      .eq('order_id', id)
+      .order('changed_at', { ascending: false })
+    setHistory(data ?? [])
+    setHistoryLoading(false)
+  }
+
   useEffect(() => {
     if (!id) return
 
     async function fetchNotes() {
       const { data } = await supabase
         .from('notes')
-        .select('id, content, created_at')
+        .select('id, content, author, created_at')
         .eq('order_id', id)
         .order('created_at', { ascending: false })
       setNotes(data ?? [])
       setNotesLoading(false)
     }
 
-    async function fetchHistory() {
-      const { data } = await supabase
-        .from('status_history')
-        .select('id, old_status, new_status, changed_at')
-        .eq('order_id', id)
-        .order('changed_at', { ascending: false })
-      setHistory(data ?? [])
-      setHistoryLoading(false)
-    }
-
     fetchNotes()
     fetchHistory()
   }, [id])
+
+  // Re-fetch history whenever the edit modal closes (status may have changed)
+  useEffect(() => {
+    if (!editing && id) fetchHistory()
+  }, [editing])
 
   async function handleAddNote(e) {
     e.preventDefault()
@@ -65,8 +70,8 @@ export default function OrderDetail() {
 
     const { data, error } = await supabase
       .from('notes')
-      .insert({ order_id: id, content: noteText.trim() })
-      .select('id, content, created_at')
+      .insert({ order_id: id, content: noteText.trim(), author: 'Admin' })
+      .select('id, content, author, created_at')
       .single()
 
     if (error) {
@@ -190,7 +195,7 @@ export default function OrderDetail() {
               <li key={note.id} className="rounded-lg bg-slate-50 border border-slate-100 px-4 py-3">
                 <p className="text-sm text-slate-800">{note.content}</p>
                 <p className="text-xs text-slate-400 mt-1">
-                  {new Date(note.created_at).toLocaleString()}
+                  {note.author} · {new Date(note.created_at).toLocaleString()}
                 </p>
               </li>
             ))}
@@ -210,9 +215,9 @@ export default function OrderDetail() {
           <ul className="space-y-2">
             {history.map(entry => (
               <li key={entry.id} className="flex items-center gap-3 text-sm">
-                <span className="text-slate-500">{entry.old_status ?? 'Created'}</span>
+                <span className="text-slate-500">{entry.from_status ?? 'Created'}</span>
                 <span className="text-slate-300">→</span>
-                <span className="font-medium text-slate-800">{entry.new_status}</span>
+                <span className="font-medium text-slate-800">{entry.to_status}</span>
                 <span className="ml-auto text-xs text-slate-400">
                   {new Date(entry.changed_at).toLocaleString()}
                 </span>

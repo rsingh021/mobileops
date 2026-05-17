@@ -45,7 +45,9 @@ export default function StatusSelect({ orderId, status }) {
       } ${saving ? 'opacity-50 cursor-wait' : ''}`}
     >
       {statusOptions.map(s => (
-        <option key={s} value={s}>{s}</option>
+        <option key={s} value={s} style={{ background: 'white', color: '#334155' }}>
+          {s}
+        </option>
       ))}
     </select>
   )
