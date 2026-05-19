@@ -4,14 +4,16 @@ import { useFacilities } from '../context/FacilitiesContext'
 import { useOrders } from '../context/OrdersContext'
 import StatusBadge from '../components/StatusBadge'
 import EditFacilityModal from '../components/EditFacilityModal'
+import ConfirmModal      from '../components/ConfirmModal'
 
 export default function FacilityDetail() {
   const { id }       = useParams()
   const navigate     = useNavigate()
-  const { facilities, loading: facilitiesLoading } = useFacilities()
-  const { orders,     loading: ordersLoading }     = useOrders()
+  const { facilities, loading: facilitiesLoading, archiveFacility } = useFacilities()
+  const { orders,     loading: ordersLoading }                       = useOrders()
 
-  const [editing, setEditing] = useState(false)
+  const [editing,        setEditing]        = useState(false)
+  const [confirmArchive, setConfirmArchive] = useState(false)
 
   const facility = facilities.find(f => String(f.id) === String(id))
 
@@ -124,6 +126,42 @@ export default function FacilityDetail() {
           </table>
         )}
       </section>
+
+      {/* ── Danger zone ───────────────────────────────────────────────────── */}
+      <section className="rounded-xl border border-red-200 bg-red-50 p-5 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-red-700">Archive Facility</p>
+          <p className="text-xs text-red-500 mt-0.5">
+            {facilityOrders.length > 0
+              ? `This facility has ${facilityOrders.length} order${facilityOrders.length !== 1 ? 's' : ''} on record — they will remain intact.`
+              : 'Removes from active list. Can be restored from the Archive page.'}
+          </p>
+        </div>
+        <button
+          onClick={() => setConfirmArchive(true)}
+          className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+        >
+          Archive
+        </button>
+      </section>
+
+      {confirmArchive && (
+        <ConfirmModal
+          title="Archive this facility?"
+          message={
+            facilityOrders.length > 0
+              ? `This facility has ${facilityOrders.length} linked order${facilityOrders.length !== 1 ? 's' : ''}. They will remain in the system — only the facility will be archived.`
+              : 'It will be removed from the active facilities list. You can restore it any time from the Archive page.'
+          }
+          confirmLabel="Archive Facility"
+          danger
+          onConfirm={async () => {
+            await archiveFacility(facility.id)
+            navigate('/facilities')
+          }}
+          onClose={() => setConfirmArchive(false)}
+        />
+      )}
 
     </div>
   )

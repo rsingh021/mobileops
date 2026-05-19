@@ -9,8 +9,9 @@ import { NavLink } from 'react-router-dom'
 // To add a new page: add it here, create the page file, and add a Route in App.jsx.
 const nav = [
   { label: 'Dashboard',  to: '/' },
-  { label: 'Facilities', to: '/facilities' },
   { label: 'Orders',     to: '/orders' },
+  { label: 'Patients',   to: '/patients' },
+  { label: 'Facilities', to: '/facilities' },
   { label: 'Schedule',   to: '/schedule' },
   { label: 'Reports',    to: '/reports' },
   { label: 'Billing',    to: '/billing' },
@@ -56,8 +57,23 @@ export default function Sidebar() {
         ))}
       </nav>
 
+      {/* ── Archive link ─────────────────────────────────────── */}
+      <div className="px-2 pb-2">
+        <NavLink
+          to="/archive"
+          className={({ isActive }) =>
+            `block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              isActive
+                ? 'bg-slate-700 text-slate-200'
+                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+            }`
+          }
+        >
+          Archive
+        </NavLink>
+      </div>
+
       {/* ── Footer / user info ───────────────────────────────── */}
-      {/* Hardcoded for now — replace with real user data after auth is added */}
       <div className="px-5 py-4 border-t border-slate-700/60">
         <p className="text-slate-300 text-sm font-medium">Admin</p>
         <p className="text-slate-500 text-xs truncate">mobileops@divine.com</p>

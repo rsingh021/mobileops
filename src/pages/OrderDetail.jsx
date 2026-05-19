@@ -6,14 +6,17 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
 import { useFacilities } from '../context/FacilitiesContext'
 import { supabase } from '../lib/supabase'
-import StatusBadge from '../components/StatusBadge'
-import EditOrderModal from '../components/EditOrderModal'
+import StatusBadge    from '../components/StatusBadge'
+import EditOrderModal  from '../components/EditOrderModal'
+import ConfirmModal    from '../components/ConfirmModal'
 
 export default function OrderDetail() {
   const { id }      = useParams()
   const navigate    = useNavigate()
-  const { orders,     loading: ordersLoading }     = useOrders()
-  const { facilities, loading: facilitiesLoading } = useFacilities()
+  const { orders, loading: ordersLoading, archiveOrder } = useOrders()
+  const { facilities, loading: facilitiesLoading }        = useFacilities()
+
+  const [confirmArchive, setConfirmArchive] = useState(false)
 
   const order    = orders.find(o => String(o.id) === String(id))
   const facility = facilities.find(f => f.name === order?.facility)
@@ -238,6 +241,34 @@ export default function OrderDetail() {
           </ul>
         )}
       </section>
+
+      {/* ── Danger zone ───────────────────────────────────────────────────── */}
+      <section className="rounded-xl border border-red-200 bg-red-50 p-5 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-red-700">Archive Order</p>
+          <p className="text-xs text-red-500 mt-0.5">Removes from active lists. Can be restored from the Archive page.</p>
+        </div>
+        <button
+          onClick={() => setConfirmArchive(true)}
+          className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+        >
+          Archive
+        </button>
+      </section>
+
+      {confirmArchive && (
+        <ConfirmModal
+          title="Archive this order?"
+          message="It will be removed from the active orders list. You can restore it any time from the Archive page."
+          confirmLabel="Archive Order"
+          danger
+          onConfirm={async () => {
+            await archiveOrder(order.id)
+            navigate('/orders')
+          }}
+          onClose={() => setConfirmArchive(false)}
+        />
+      )}
 
     </div>
   )

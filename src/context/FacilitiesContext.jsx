@@ -21,6 +21,7 @@ export function FacilitiesProvider({ children }) {
         const { data, error } = await supabase
           .from('facilities')
           .select('id, name, city, address, contact, phone')
+          .is('archived_at', null)
           .order('name', { ascending: true })
 
         if (error) throw error
@@ -76,8 +77,28 @@ export function FacilitiesProvider({ children }) {
     return data
   }
 
+  async function archiveFacility(id) {
+    const { error } = await supabase
+      .from('facilities')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('id', id)
+    if (error) throw error
+    setFacilities(current => current.filter(f => f.id !== id))
+  }
+
+  async function restoreFacility(id) {
+    const { data, error } = await supabase
+      .from('facilities')
+      .update({ archived_at: null })
+      .eq('id', id)
+      .select('id, name, city, address, contact, phone')
+      .single()
+    if (error) throw error
+    setFacilities(current => [...current, data].sort((a, b) => a.name.localeCompare(b.name)))
+  }
+
   return (
-    <FacilitiesContext.Provider value={{ facilities, loading, error, addFacility, updateFacility }}>
+    <FacilitiesContext.Provider value={{ facilities, loading, error, addFacility, updateFacility, archiveFacility, restoreFacility }}>
       {children}
     </FacilitiesContext.Provider>
   )

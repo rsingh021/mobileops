@@ -25,7 +25,10 @@ import Reports    from './pages/Reports'
 import Billing    from './pages/Billing'
 import NewOrder     from './pages/NewOrder'
 import OrderDetail    from './pages/OrderDetail'
-import FacilityDetail from './pages/FacilityDetail'
+import FacilityDetail  from './pages/FacilityDetail'
+import Patients        from './pages/Patients'
+import PatientDetail   from './pages/PatientDetail'
+import Archive         from './pages/Archive'
 
 export default function App() {
   return (
@@ -61,6 +64,9 @@ export default function App() {
                 <Route path="/"           element={<Dashboard />}  />
                 <Route path="/facilities"    element={<Facilities />}    />
                 <Route path="/facilities/:id" element={<FacilityDetail />} />
+                <Route path="/patients"       element={<Patients />}       />
+                <Route path="/patients/:id"   element={<PatientDetail />}  />
+                <Route path="/archive"        element={<Archive />}         />
                 <Route path="/orders"     element={<Orders />}     />
                 <Route path="/orders/new" element={<NewOrder />}     />
                 <Route path="/orders/:id" element={<OrderDetail />} />

@@ -24,6 +24,7 @@ export function PatientsProvider({ children }) {
         const { data, error } = await supabase
           .from('patients')
           .select('*')
+          .is('archived_at', null)
           .order('last_name', { ascending: true })
 
         if (error) throw error
@@ -58,8 +59,28 @@ export function PatientsProvider({ children }) {
     return patient
   }
 
+  async function archivePatient(id) {
+    const { error } = await supabase
+      .from('patients')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('id', id)
+    if (error) throw error
+    setPatients(current => current.filter(p => p.id !== id))
+  }
+
+  async function restorePatient(id) {
+    const { data, error } = await supabase
+      .from('patients')
+      .update({ archived_at: null })
+      .eq('id', id)
+      .select('*')
+      .single()
+    if (error) throw error
+    setPatients(current => [...current, toJS(data)].sort((a, b) => a.lastName.localeCompare(b.lastName)))
+  }
+
   return (
-    <PatientsContext.Provider value={{ patients, loading, error, addPatient }}>
+    <PatientsContext.Provider value={{ patients, loading, error, addPatient, archivePatient, restorePatient }}>
       {children}
     </PatientsContext.Provider>
   )

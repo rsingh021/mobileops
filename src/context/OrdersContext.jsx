@@ -56,8 +56,8 @@ export function OrdersProvider({ children }) {
       try {
         const { data, error } = await supabase
           .from('orders')
-          // Join patients so each order includes the linked patient's info
           .select('*, patients(id, first_name, last_name, date_of_birth, phone)')
+          .is('archived_at', null)
           .order('created_at', { ascending: false })
 
         if (error) throw error
@@ -108,8 +108,28 @@ export function OrdersProvider({ children }) {
     setOrders(current => current.map(o => o.id === id ? toJS(data) : o))
   }
 
+  async function archiveOrder(id) {
+    const { error } = await supabase
+      .from('orders')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('id', id)
+    if (error) throw error
+    setOrders(current => current.filter(o => o.id !== id))
+  }
+
+  async function restoreOrder(id) {
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ archived_at: null })
+      .eq('id', id)
+      .select('*, patients(id, first_name, last_name, date_of_birth, phone)')
+      .single()
+    if (error) throw error
+    setOrders(current => [toJS(data), ...current])
+  }
+
   return (
-    <OrdersContext.Provider value={{ orders, loading, error, addOrder, updateOrder }}>
+    <OrdersContext.Provider value={{ orders, loading, error, addOrder, updateOrder, archiveOrder, restoreOrder }}>
       {children}
     </OrdersContext.Provider>
   )
