@@ -1,27 +1,49 @@
-// Dashboard.jsx — The home page ("/").
-// Fetches the live orders list from context (which reads from Supabase)
-// and shows summary stat cards + the full orders table.
-
+import { useNavigate } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
 import StatusBadge from '../components/StatusBadge'
 
-function StatCard({ label, value, note }) {
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="text-3xl font-bold text-slate-800 mt-1">{value}</p>
-      {note && <p className="text-xs text-slate-400 mt-1">{note}</p>}
-    </div>
-  )
+// Returns Monday–Sunday bounds for the current week as YYYY-MM-DD strings
+function getThisWeek() {
+  const today = new Date()
+  const day   = today.getDay() // 0 = Sun
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - ((day + 6) % 7))
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  const fmt = d => d.toISOString().slice(0, 10)
+  return { weekStart: fmt(monday), weekEnd: fmt(sunday), todayStr: fmt(today) }
+}
+
+// Days between a date string and today (positive = in the past)
+function daysAgo(dateStr) {
+  if (!dateStr) return null
+  const diff = new Date().setHours(0,0,0,0) - new Date(dateStr).setHours(0,0,0,0)
+  return Math.floor(diff / 86400000)
+}
+
+// Short weekday label from a YYYY-MM-DD string
+function weekdayLabel(dateStr) {
+  if (!dateStr) return ''
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
+// Human-readable relative time (e.g. "2 hours ago", "just now")
+function timeAgo(isoString) {
+  if (!isoString) return '—'
+  const seconds = Math.floor((Date.now() - new Date(isoString)) / 1000)
+  if (seconds < 60)  return 'just now'
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+  return `${Math.floor(seconds / 86400)}d ago`
 }
 
 export default function Dashboard() {
-  // loading is true while Supabase is fetching — show a spinner until it's done
   const { orders, loading, error } = useOrders()
+  const navigate = useNavigate()
 
   if (loading) return (
     <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
-      Loading orders...
+      Loading...
     </div>
   )
 
@@ -31,59 +53,285 @@ export default function Dashboard() {
     </div>
   )
 
-  // Derive counts from the live orders array — updates automatically when new orders are added
-  const pending        = orders.filter(o => o.status === 'Requested').length
-  const scheduled      = orders.filter(o => o.status === 'Scheduled').length
-  const reportsSent    = orders.filter(o => o.status === 'Report Sent').length
-  const billingPending = orders.filter(o => o.billingStatus !== 'Ready').length
+  const { weekStart, weekEnd, todayStr } = getThisWeek()
+
+  // ── Derived data ───────────────────────────────────────────────────────────
+
+
+  // Orders needing attention: Requested (not yet scheduled)
+  const needsAttention = orders
+    .filter(o => o.status === 'Requested')
+    .sort((a, b) => new Date(a.date ?? 0) - new Date(b.date ?? 0))
+
+  // Reports overdue: exam is Completed but no report sent, and date is in the past
+  const reportsOverdue = orders
+    .filter(o => o.status === 'Completed' && o.date && o.date < todayStr)
+    .sort((a, b) => new Date(a.date) - new Date(b.date)) // oldest first = most overdue
+
+  // This week's scheduled visits
+  const thisWeek = orders
+    .filter(o => o.status === 'Scheduled' && o.date && o.date >= weekStart && o.date <= weekEnd)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+
+  // Recently updated: sorted by updatedAt desc, take top 8
+  const recentlyUpdated = [...orders]
+    .sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? 0) - new Date(a.updatedAt ?? a.createdAt ?? 0))
+    .slice(0, 8)
+
+  // Stat card values
+  const activeOrders = orders.filter(o => o.status !== 'Billed').length
 
   return (
     <div className="space-y-6">
 
-      {/* ── Stat cards row ──────────────────────────────────── */}
+      {/* ── Stat cards ────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-4">
-        <StatCard label="Pending Orders"  value={pending}        note="Awaiting scheduling" />
-        <StatCard label="Scheduled Today" value={scheduled}      note="On the board" />
-        <StatCard label="Reports Sent"    value={reportsSent}    note="Ready for review" />
-        <StatCard label="Billing Pending" value={billingPending} note="Needs attention" />
+        <StatCard
+          label="Active Orders"
+          value={activeOrders}
+          note="Not yet billed"
+        />
+        <StatCard
+          label="Needs Scheduling"
+          value={needsAttention.length}
+          note="Requested, not scheduled"
+          accent={needsAttention.length > 0 ? 'amber' : null}
+        />
+        <StatCard
+          label="Reports Overdue"
+          value={reportsOverdue.length}
+          note="Exam done, no report sent"
+          accent={reportsOverdue.length > 0 ? 'red' : null}
+        />
+        <StatCard
+          label="This Week"
+          value={thisWeek.length}
+          note="Scheduled visits"
+          accent={thisWeek.length > 0 ? 'blue' : null}
+        />
       </div>
 
-      {/* ── Orders table ────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-slate-200">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="font-semibold text-slate-800">Recent Orders</h3>
-          <span className="text-xs text-slate-400">{orders.length} total</span>
-        </div>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-slate-100">
-              <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Facility</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Exam</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Patient</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Billing</th>
-              <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map(order => (
-              <tr key={order.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                <td className="px-5 py-3.5 text-sm font-medium text-slate-800">{order.facility}</td>
-                <td className="px-5 py-3.5 text-sm text-slate-600">{order.examType}</td>
-                <td className="px-5 py-3.5 text-sm text-slate-600">
-                  {order.patient
-                    ? `${order.patient.firstName} ${order.patient.lastName}`
-                    : order.patientInitials}
-                </td>
-                <td className="px-5 py-3.5"><StatusBadge status={order.status} /></td>
-                <td className="px-5 py-3.5 text-sm text-slate-600">{order.billingStatus}</td>
-                <td className="px-5 py-3.5 text-sm text-slate-400">{order.date}</td>
+      {/* ── Orders needing attention ───────────────────────────────────────── */}
+      <Section
+        title="Orders Needing Attention"
+        count={needsAttention.length}
+        emptyMessage="No unscheduled orders."
+        accentEmpty
+      >
+        {needsAttention.length > 0 && (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <ColHead>Patient</ColHead>
+                <ColHead>Facility</ColHead>
+                <ColHead>Exam Type</ColHead>
+                <ColHead>Requested Date</ColHead>
+                <ColHead>Billing</ColHead>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {needsAttention.map(order => (
+                <tr
+                  key={order.id}
+                  onClick={() => navigate(`/orders/${order.id}`)}
+                  className="border-b border-slate-50 hover:bg-amber-50 transition-colors cursor-pointer"
+                >
+                  <td className="px-5 py-3.5 text-sm font-medium text-slate-800">
+                    {order.patient
+                      ? `${order.patient.firstName} ${order.patient.lastName}`
+                      : order.patientInitials ?? '—'}
+                  </td>
+                  <td className="px-5 py-3.5 text-sm text-slate-600">{order.facility}</td>
+                  <td className="px-5 py-3.5 text-sm text-slate-600">{order.examType}</td>
+                  <td className="px-5 py-3.5 text-sm text-slate-400">{order.date ?? '—'}</td>
+                  <td className="px-5 py-3.5 text-sm text-slate-600">{order.billingStatus}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Section>
+
+      {/* ── Reports overdue ───────────────────────────────────────────────── */}
+      <Section
+        title="Reports Overdue"
+        count={reportsOverdue.length}
+        emptyMessage="No overdue reports."
+      >
+        {reportsOverdue.length > 0 && (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <ColHead>Patient</ColHead>
+                <ColHead>Facility</ColHead>
+                <ColHead>Exam Type</ColHead>
+                <ColHead>Exam Date</ColHead>
+                <ColHead>Days Overdue</ColHead>
+              </tr>
+            </thead>
+            <tbody>
+              {reportsOverdue.map(order => {
+                const days = daysAgo(order.date)
+                return (
+                  <tr
+                    key={order.id}
+                    onClick={() => navigate(`/orders/${order.id}`)}
+                    className="border-b border-slate-50 hover:bg-red-50 transition-colors cursor-pointer"
+                  >
+                    <td className="px-5 py-3.5 text-sm font-medium text-slate-800">
+                      {order.patient
+                        ? `${order.patient.firstName} ${order.patient.lastName}`
+                        : order.patientInitials ?? '—'}
+                    </td>
+                    <td className="px-5 py-3.5 text-sm text-slate-600">{order.facility}</td>
+                    <td className="px-5 py-3.5 text-sm text-slate-600">{order.examType}</td>
+                    <td className="px-5 py-3.5 text-sm text-slate-400">{order.date}</td>
+                    <td className="px-5 py-3.5">
+                      <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        days >= 3 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {days === 1 ? '1 day' : `${days} days`}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </Section>
+
+      {/* ── This week's scheduled visits ──────────────────────────────────── */}
+      <Section
+        title="This Week's Scheduled Visits"
+        count={thisWeek.length}
+        emptyMessage="No visits scheduled this week."
+      >
+        {thisWeek.length > 0 && (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <ColHead>Day</ColHead>
+                <ColHead>Patient</ColHead>
+                <ColHead>Facility</ColHead>
+                <ColHead>Exam Type</ColHead>
+                <ColHead>Billing</ColHead>
+              </tr>
+            </thead>
+            <tbody>
+              {thisWeek.map(order => (
+                <tr
+                  key={order.id}
+                  onClick={() => navigate(`/orders/${order.id}`)}
+                  className="border-b border-slate-50 hover:bg-blue-50 transition-colors cursor-pointer"
+                >
+                  <td className="px-5 py-3.5 text-sm font-medium text-slate-800">
+                    {order.date === todayStr
+                      ? <span className="text-blue-600 font-semibold">Today</span>
+                      : weekdayLabel(order.date)}
+                  </td>
+                  <td className="px-5 py-3.5 text-sm text-slate-700">
+                    {order.patient
+                      ? `${order.patient.firstName} ${order.patient.lastName}`
+                      : order.patientInitials ?? '—'}
+                  </td>
+                  <td className="px-5 py-3.5 text-sm text-slate-600">{order.facility}</td>
+                  <td className="px-5 py-3.5 text-sm text-slate-600">{order.examType}</td>
+                  <td className="px-5 py-3.5 text-sm text-slate-600">{order.billingStatus}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Section>
+
+      {/* ── Recently updated orders ───────────────────────────────────────── */}
+      <Section
+        title="Recently Updated Orders"
+        count={recentlyUpdated.length}
+        emptyMessage="No orders yet."
+        countLabel="shown"
+      >
+        {recentlyUpdated.length > 0 && (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <ColHead>Patient</ColHead>
+                <ColHead>Facility</ColHead>
+                <ColHead>Exam Type</ColHead>
+                <ColHead>Status</ColHead>
+                <ColHead>Updated</ColHead>
+              </tr>
+            </thead>
+            <tbody>
+              {recentlyUpdated.map(order => (
+                <tr
+                  key={order.id}
+                  onClick={() => navigate(`/orders/${order.id}`)}
+                  className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  <td className="px-5 py-3.5 text-sm font-medium text-slate-800">
+                    {order.patient
+                      ? `${order.patient.firstName} ${order.patient.lastName}`
+                      : order.patientInitials ?? '—'}
+                  </td>
+                  <td className="px-5 py-3.5 text-sm text-slate-600">{order.facility}</td>
+                  <td className="px-5 py-3.5 text-sm text-slate-600">{order.examType}</td>
+                  <td className="px-5 py-3.5"><StatusBadge status={order.status} /></td>
+                  <td className="px-5 py-3.5 text-sm text-slate-400">
+                    {timeAgo(order.updatedAt ?? order.createdAt)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Section>
 
     </div>
+  )
+}
+
+// ── Small reusable components ──────────────────────────────────────────────────
+
+const accentValueColors = {
+  amber: 'text-amber-600',
+  red:   'text-red-600',
+  blue:  'text-blue-600',
+}
+
+function StatCard({ label, value, note, accent }) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-5">
+      <p className="text-sm text-slate-500">{label}</p>
+      <p className={`text-3xl font-bold mt-1 ${accentValueColors[accent] ?? 'text-slate-800'}`}>
+        {value}
+      </p>
+      {note && <p className="text-xs text-slate-400 mt-1">{note}</p>}
+    </div>
+  )
+}
+
+function Section({ title, count, emptyMessage, countLabel = 'orders', children }) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200">
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 className="font-semibold text-slate-800">{title}</h3>
+        <span className="text-xs text-slate-400">
+          {count} {countLabel === 'orders' ? (count === 1 ? 'order' : 'orders') : countLabel}
+        </span>
+      </div>
+      {count === 0
+        ? <p className="px-5 py-8 text-center text-sm text-slate-400">{emptyMessage}</p>
+        : children}
+    </div>
+  )
+}
+
+function ColHead({ children }) {
+  return (
+    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+      {children}
+    </th>
   )
 }

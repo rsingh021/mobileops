@@ -33,6 +33,7 @@ export default function EditOrderModal({ order, onClose }) {
     status:          order.status,
     billingStatus:   order.billingStatus,
     date:            order.date,
+    time:            order.time ?? '',
   })
 
   const [saving, setSaving]     = useState(false)
@@ -152,9 +153,8 @@ export default function EditOrderModal({ order, onClose }) {
             />
           </div>
 
-          {/* ── Status / Billing Status / Date ────────────── */}
-          <div className="grid grid-cols-3 gap-3">
-
+          {/* ── Status / Billing ──────────────────────────── */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Status</label>
               <select
@@ -166,7 +166,6 @@ export default function EditOrderModal({ order, onClose }) {
                 {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
-
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Billing</label>
               <select
@@ -178,7 +177,10 @@ export default function EditOrderModal({ order, onClose }) {
                 {billingStatusOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
+          </div>
 
+          {/* ── Date / Time ───────────────────────────────── */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label>
               <input
@@ -189,7 +191,18 @@ export default function EditOrderModal({ order, onClose }) {
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
-
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                Time <span className="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="time"
+                name="time"
+                value={formData.time}
+                onChange={handleChange}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
           </div>
 
           {/* ── Actions ───────────────────────────────────── */}

@@ -24,6 +24,9 @@ function toJS(row) {
     status:        row.status,
     billingStatus: row.billing_status,
     date:          row.date,
+    time:          row.time ?? null,
+    updatedAt:     row.updated_at,
+    createdAt:     row.created_at,
   }
 }
 
@@ -37,6 +40,7 @@ function toDB(order) {
     status:           order.status,
     billing_status:   order.billingStatus,
     date:             order.date,
+    time:             order.time ?? null,
   }
 }
 
@@ -90,6 +94,7 @@ export function OrdersProvider({ children }) {
       ...(changes.status          !== undefined && { status:           changes.status }),
       ...(changes.billingStatus   !== undefined && { billing_status:   changes.billingStatus }),
       ...(changes.date            !== undefined && { date:             changes.date }),
+      ...(changes.time            !== undefined && { time:             changes.time }),
     }
 
     const { data, error } = await supabase

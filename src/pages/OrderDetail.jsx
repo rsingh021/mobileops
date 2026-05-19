@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
+import { useFacilities } from '../context/FacilitiesContext'
 import { supabase } from '../lib/supabase'
 import StatusBadge from '../components/StatusBadge'
 import EditOrderModal from '../components/EditOrderModal'
@@ -11,10 +12,11 @@ import EditOrderModal from '../components/EditOrderModal'
 export default function OrderDetail() {
   const { id }      = useParams()
   const navigate    = useNavigate()
-  const { orders, loading: ordersLoading } = useOrders()
+  const { orders,     loading: ordersLoading }     = useOrders()
+  const { facilities, loading: facilitiesLoading } = useFacilities()
 
-  // Find this order in the already-loaded context
-  const order = orders.find(o => String(o.id) === String(id))
+  const order    = orders.find(o => String(o.id) === String(id))
+  const facility = facilities.find(f => f.name === order?.facility)
 
   const [editing, setEditing] = useState(false)
 
@@ -143,9 +145,19 @@ export default function OrderDetail() {
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Order Details</p>
         <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
 
-          <Field label="Facility"    value={order.facility} />
-          <Field label="Exam Type"   value={order.examType} />
-          <Field label="Date"        value={order.date ?? '—'} />
+          <div>
+            <p className="text-xs text-slate-400 mb-1">Facility</p>
+            <p className="text-sm font-medium text-slate-800">{order.facility}</p>
+            {facility?.address && (
+              <p className="text-xs text-slate-400 mt-0.5">{facility.address}{facility.city ? `, ${facility.city}` : ''}</p>
+            )}
+            {!facility?.address && facility?.city && (
+              <p className="text-xs text-slate-400 mt-0.5">{facility.city}</p>
+            )}
+          </div>
+          <Field label="Exam Type" value={order.examType} />
+          <Field label="Date"     value={order.date ?? '—'} />
+          <Field label="Time"     value={order.time ? formatTime(order.time) : '—'} />
 
           <div>
             <p className="text-xs text-slate-400 mb-1">Status</p>
@@ -229,6 +241,14 @@ export default function OrderDetail() {
 
     </div>
   )
+}
+
+function formatTime(t) {
+  if (!t) return null
+  const [h, m] = t.split(':').map(Number)
+  const period = h >= 12 ? 'PM' : 'AM'
+  const hour   = h % 12 || 12
+  return `${hour}:${String(m).padStart(2, '0')} ${period}`
 }
 
 function Field({ label, value }) {

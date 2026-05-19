@@ -20,11 +20,10 @@ export function FacilitiesProvider({ children }) {
       try {
         const { data, error } = await supabase
           .from('facilities')
-          .select('*')
-          .order('name', { ascending: true }) // Alphabetical order
+          .select('id, name, city, address, contact, phone')
+          .order('name', { ascending: true })
 
         if (error) throw error
-        // Facility columns (name, city, contact) already match JS naming — no mapping needed
         setFacilities(data)
       } catch (err) {
         setError(err.message)
@@ -43,7 +42,9 @@ export function FacilitiesProvider({ children }) {
       .insert({
         name:    newFacility.name,
         city:    newFacility.city,
+        address: newFacility.address ?? null,
         contact: newFacility.contact,
+        phone:   newFacility.phone ?? null,
       })
       .select()
       .single()
@@ -54,8 +55,29 @@ export function FacilitiesProvider({ children }) {
     return data
   }
 
+  async function updateFacility(id, changes) {
+    const { data, error } = await supabase
+      .from('facilities')
+      .update({
+        ...(changes.name    !== undefined && { name:    changes.name }),
+        ...(changes.city    !== undefined && { city:    changes.city }),
+        ...(changes.address !== undefined && { address: changes.address }),
+        ...(changes.contact !== undefined && { contact: changes.contact }),
+        ...(changes.phone   !== undefined && { phone:   changes.phone }),
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    setFacilities(current =>
+      current.map(f => f.id === id ? data : f).sort((a, b) => a.name.localeCompare(b.name))
+    )
+    return data
+  }
+
   return (
-    <FacilitiesContext.Provider value={{ facilities, loading, error, addFacility }}>
+    <FacilitiesContext.Provider value={{ facilities, loading, error, addFacility, updateFacility }}>
       {children}
     </FacilitiesContext.Provider>
   )

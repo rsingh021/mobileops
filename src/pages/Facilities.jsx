@@ -2,13 +2,19 @@
 // Lists all partner facilities fetched live from Supabase.
 // activeOrders count is computed from the live orders list.
 
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useFacilities } from '../context/FacilitiesContext'
 import { useOrders } from '../context/OrdersContext'
+import AddFacilityModal  from '../components/AddFacilityModal'
+import EditFacilityModal from '../components/EditFacilityModal'
 
 export default function Facilities() {
   const { facilities, loading, error } = useFacilities()
-  // Pull orders so we can compute activeOrders per facility dynamically
-  const { orders } = useOrders()
+  const { orders }  = useOrders()
+  const navigate    = useNavigate()
+  const [showAdd,     setShowAdd]     = useState(false)
+  const [editingFacility, setEditingFacility] = useState(null)
 
   if (loading) return (
     <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
@@ -33,11 +39,17 @@ export default function Facilities() {
   return (
     <div className="space-y-4">
 
+      {showAdd         && <AddFacilityModal  onClose={() => setShowAdd(false)} />}
+      {editingFacility && <EditFacilityModal facility={editingFacility} onClose={() => setEditingFacility(null)} />}
+
       {/* ── Facilities table ─────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-slate-200">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-semibold text-slate-800">Partner Facilities</h3>
-          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <button
+            onClick={() => setShowAdd(true)}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+          >
             + Add Facility
           </button>
         </div>
@@ -56,7 +68,11 @@ export default function Facilities() {
             {facilities.map(f => {
               const count = activeOrderCount(f.name)
               return (
-                <tr key={f.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                <tr
+                  key={f.id}
+                  onClick={() => navigate(`/facilities/${f.id}`)}
+                  className="border-b border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
                   <td className="px-5 py-3.5 text-sm font-medium text-slate-800">{f.name}</td>
                   <td className="px-5 py-3.5 text-sm text-slate-600">{f.city}</td>
                   <td className="px-5 py-3.5 text-sm text-slate-600">{f.contact}</td>
@@ -67,8 +83,13 @@ export default function Facilities() {
                       {count} order{count !== 1 ? 's' : ''}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5">
-                    <button className="text-xs text-slate-400 hover:text-slate-700 font-medium">Edit</button>
+                  <td className="px-5 py-3.5" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => setEditingFacility(f)}
+                      className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Edit
+                    </button>
                   </td>
                 </tr>
               )
@@ -77,11 +98,7 @@ export default function Facilities() {
         </table>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
-        <p className="text-sm font-semibold text-amber-800">Coming next</p>
-        <p className="text-sm text-amber-700 mt-0.5">Facility detail view, order history per facility, and contact management.</p>
-      </div>
 
-    </div>
+</div>
   )
 }

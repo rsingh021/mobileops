@@ -52,6 +52,7 @@ export default function NewOrder() {
     status:        'Requested',
     billingStatus: 'Not Started',
     date:          new Date().toISOString().slice(0, 10),
+    time:          '',
   })
   const [submitting,   setSubmitting]   = useState(false)
   const [submitError,  setSubmitError]  = useState(null)
@@ -383,7 +384,7 @@ export default function NewOrder() {
               </select>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Status</label>
                 <select
@@ -406,12 +407,27 @@ export default function NewOrder() {
                   {billingOptions.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label>
                 <input
                   type="date"
                   name="date"
                   value={orderData.date}
+                  onChange={handleOrderChange}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Time <span className="text-slate-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  type="time"
+                  name="time"
+                  value={orderData.time}
                   onChange={handleOrderChange}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />

@@ -24,7 +24,8 @@ import Schedule   from './pages/Schedule'
 import Reports    from './pages/Reports'
 import Billing    from './pages/Billing'
 import NewOrder     from './pages/NewOrder'
-import OrderDetail  from './pages/OrderDetail'
+import OrderDetail    from './pages/OrderDetail'
+import FacilityDetail from './pages/FacilityDetail'
 
 export default function App() {
   return (
@@ -58,7 +59,8 @@ export default function App() {
                   Only one page renders at a time. */}
               <Routes>
                 <Route path="/"           element={<Dashboard />}  />
-                <Route path="/facilities" element={<Facilities />} />
+                <Route path="/facilities"    element={<Facilities />}    />
+                <Route path="/facilities/:id" element={<FacilityDetail />} />
                 <Route path="/orders"     element={<Orders />}     />
                 <Route path="/orders/new" element={<NewOrder />}     />
                 <Route path="/orders/:id" element={<OrderDetail />} />
