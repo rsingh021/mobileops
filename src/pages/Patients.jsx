@@ -2,12 +2,14 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePatients } from '../context/PatientsContext'
 import { useOrders } from '../context/OrdersContext'
+import AddPatientModal from '../components/AddPatientModal'
 
 export default function Patients() {
   const { patients, loading, error } = usePatients()
   const { orders } = useOrders()
   const navigate   = useNavigate()
-  const [search, setSearch] = useState('')
+  const [search,   setSearch]   = useState('')
+  const [showAdd,  setShowAdd]  = useState(false)
 
   const orderCountByPatient = useMemo(() => {
     const map = {}
@@ -42,6 +44,8 @@ export default function Patients() {
   return (
     <div className="space-y-4">
 
+      {showAdd && <AddPatientModal onClose={() => setShowAdd(false)} />}
+
       {/* ── Search bar ────────────────────────────────────────────────────── */}
       <div className="flex gap-3 items-center">
         <input
@@ -64,9 +68,17 @@ export default function Patients() {
       <div className="bg-white rounded-xl border border-slate-200">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-semibold text-slate-800">Patients</h3>
-          <span className="text-xs text-slate-400">
-            {visible.length} {visible.length !== patients.length ? `of ${patients.length}` : 'total'}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-400">
+              {visible.length} {visible.length !== patients.length ? `of ${patients.length}` : 'total'}
+            </span>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              + Add Patient
+            </button>
+          </div>
         </div>
 
         {visible.length === 0 ? (

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
 import { useFacilities } from '../context/FacilitiesContext'
+import { useToast } from '../context/ToastContext'
 import { supabase } from '../lib/supabase'
 import StatusBadge    from '../components/StatusBadge'
 import EditOrderModal  from '../components/EditOrderModal'
@@ -16,6 +17,7 @@ export default function OrderDetail() {
   const { orders, loading: ordersLoading, archiveOrder } = useOrders()
   const { facilities, loading: facilitiesLoading }        = useFacilities()
 
+  const { toast } = useToast()
   const [confirmArchive, setConfirmArchive] = useState(false)
 
   const order    = orders.find(o => String(o.id) === String(id))
@@ -84,6 +86,7 @@ export default function OrderDetail() {
     } else {
       setNotes(cur => [data, ...cur])
       setNoteText('')
+      toast('Note added')
     }
     setSavingNote(false)
   }
@@ -210,7 +213,7 @@ export default function OrderDetail() {
               <li key={note.id} className="rounded-lg bg-slate-50 border border-slate-100 px-4 py-3">
                 <p className="text-sm text-slate-800">{note.content}</p>
                 <p className="text-xs text-slate-400 mt-1">
-                  {note.author} · {new Date(note.created_at).toLocaleString()}
+                  {note.author} · {friendlyTime(note.created_at)}
                 </p>
               </li>
             ))}
@@ -264,6 +267,7 @@ export default function OrderDetail() {
           danger
           onConfirm={async () => {
             await archiveOrder(order.id)
+            toast('Order archived')
             navigate('/orders')
           }}
           onClose={() => setConfirmArchive(false)}
@@ -272,6 +276,21 @@ export default function OrderDetail() {
 
     </div>
   )
+}
+
+function friendlyTime(isoString) {
+  const date    = new Date(isoString)
+  const seconds = Math.floor((Date.now() - date) / 1000)
+  if (seconds < 60)        return 'just now'
+  if (seconds < 3600)      return `${Math.floor(seconds / 60)}m ago`
+  if (seconds < 86400)     return `${Math.floor(seconds / 3600)}h ago`
+  if (seconds < 7 * 86400) return `${Math.floor(seconds / 86400)}d ago`
+  const now = new Date()
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day:   'numeric',
+    ...(date.getFullYear() !== now.getFullYear() && { year: 'numeric' }),
+  })
 }
 
 function formatTime(t) {

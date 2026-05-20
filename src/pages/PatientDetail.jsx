@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { usePatients } from '../context/PatientsContext'
 import { useOrders } from '../context/OrdersContext'
-import StatusBadge  from '../components/StatusBadge'
-import ConfirmModal from '../components/ConfirmModal'
+import { useToast } from '../context/ToastContext'
+import StatusBadge        from '../components/StatusBadge'
+import ConfirmModal       from '../components/ConfirmModal'
+import EditPatientModal   from '../components/EditPatientModal'
 
 function formatTime(t) {
   if (!t) return null
@@ -19,6 +21,8 @@ export default function PatientDetail() {
   const { patients, loading: pLoading, archivePatient } = usePatients()
   const { orders,   loading: oLoading }                  = useOrders()
 
+  const { toast } = useToast()
+  const [editing,        setEditing]        = useState(false)
   const [confirmArchive, setConfirmArchive] = useState(false)
 
   const patient = patients.find(p => String(p.id) === String(id))
@@ -50,6 +54,8 @@ export default function PatientDetail() {
   return (
     <div className="mx-auto max-w-3xl space-y-5">
 
+      {editing && <EditPatientModal patient={patient} onClose={() => setEditing(false)} />}
+
       {/* ── Top bar ───────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <button
@@ -58,6 +64,20 @@ export default function PatientDetail() {
         >
           ← Patients
         </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate('/orders/new', { state: { patient: { id: patient.id, firstName: patient.firstName, lastName: patient.lastName, dob: patient.dob, phone: patient.phone } } })}
+            className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
+          >
+            + New Order
+          </button>
+          <button
+            onClick={() => setEditing(true)}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Edit Patient
+          </button>
+        </div>
       </div>
 
       {/* ── Patient info card ─────────────────────────────────────────────── */}
@@ -157,6 +177,7 @@ export default function PatientDetail() {
           danger
           onConfirm={async () => {
             await archivePatient(patient.id)
+            toast('Patient archived')
             navigate('/patients')
           }}
           onClose={() => setConfirmArchive(false)}

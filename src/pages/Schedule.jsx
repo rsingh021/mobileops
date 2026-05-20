@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
+import { useToast } from '../context/ToastContext'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -13,7 +14,10 @@ function formatTime(t) {
 }
 
 function toYMD(date) {
-  return date.toISOString().slice(0, 10)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 // 42-cell grid (6 weeks) for a given year/month
@@ -52,6 +56,7 @@ const MONTHS = [
 export default function Schedule() {
   const { orders, loading, error, updateOrder } = useOrders()
   const navigate = useNavigate()
+  const { toast } = useToast()
 
   const today = new Date()
   const [viewYear,  setViewYear]  = useState(today.getFullYear())
@@ -65,10 +70,9 @@ export default function Schedule() {
   const [saving,          setSaving]          = useState(false)
   const [rescheduleError, setRescheduleError] = useState(null)
 
-  // Build date → orders map, each day sorted by time
-  const ordersByDate = useMemo(() => {
+  function buildDateMap(orderList) {
     const map = {}
-    for (const o of orders) {
+    for (const o of orderList) {
       if (!o.date) continue
       if (!map[o.date]) map[o.date] = []
       map[o.date].push(o)
@@ -82,10 +86,19 @@ export default function Schedule() {
       })
     }
     return map
-  }, [orders])
+  }
 
-  const cells        = useMemo(() => buildCalendarGrid(viewYear, viewMonth), [viewYear, viewMonth])
-  const todayStr     = toYMD(today)
+  // All orders by date — used for the selected-day detail panel
+  const ordersByDate = useMemo(() => buildDateMap(orders), [orders])
+
+  // Calendar pills exclude Requested (no confirmed time, clutter the grid)
+  const calendarByDate = useMemo(
+    () => buildDateMap(orders.filter(o => o.status !== 'Requested')),
+    [orders]
+  )
+
+  const cells          = useMemo(() => buildCalendarGrid(viewYear, viewMonth), [viewYear, viewMonth])
+  const todayStr       = toYMD(today)
   const selectedOrders = ordersByDate[selectedDay] ?? []
 
   function prevMonth() {
@@ -111,6 +124,7 @@ export default function Schedule() {
     setRescheduleError(null)
     try {
       await updateOrder(rescheduling.id, { date: newDate, time: newTime || null })
+      toast('Order rescheduled')
       setRescheduling(null)
     } catch (err) {
       setRescheduleError(err.message)
@@ -241,7 +255,7 @@ export default function Schedule() {
             const ymd        = toYMD(cell.date)
             const isToday    = ymd === todayStr
             const isSelected = ymd === selectedDay
-            const dayOrders  = ordersByDate[ymd] ?? []
+            const dayOrders  = calendarByDate[ymd] ?? []
             const shown      = dayOrders.slice(0, 3)
             const overflow   = dayOrders.length - 3
 

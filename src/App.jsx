@@ -4,84 +4,89 @@
 //   2. Wrap everything in OrdersProvider so any page can read/write the orders list.
 //   3. Render the persistent layout (Sidebar + Header) around whichever page is active.
 
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-// BrowserRouter — listens to the browser's URL and provides routing context to everything inside it
-// Routes      — looks at the current URL and renders only the matching Route
-// Route       — pairs a URL path (e.g. "/orders") with a page component (e.g. <Orders />)
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
+import { AuthProvider }       from './context/AuthContext'
+import { ToastProvider }      from './context/ToastContext'
 import { OrdersProvider }     from './context/OrdersContext'
 import { FacilitiesProvider } from './context/FacilitiesContext'
 import { PatientsProvider }   from './context/PatientsContext'
+import { useAuth }            from './context/AuthContext'
 
-import Sidebar from './components/Sidebar' // Left nav — always visible
-import Header from './components/Header'   // Top bar — always visible
+import Sidebar from './components/Sidebar'
+import Header  from './components/Header'
 
-// Page components — each one is rendered when its URL path is matched by a <Route>
-import Dashboard  from './pages/Dashboard'
-import Facilities from './pages/Facilities'
-import Orders     from './pages/Orders'
-import Schedule   from './pages/Schedule'
-import Reports    from './pages/Reports'
-import Billing    from './pages/Billing'
-import NewOrder     from './pages/NewOrder'
+import Login          from './pages/Login'
+import Dashboard      from './pages/Dashboard'
+import Facilities     from './pages/Facilities'
+import Orders         from './pages/Orders'
+import Schedule       from './pages/Schedule'
+import Reports        from './pages/Reports'
+import Billing        from './pages/Billing'
+import NewOrder       from './pages/NewOrder'
 import OrderDetail    from './pages/OrderDetail'
-import FacilityDetail  from './pages/FacilityDetail'
-import Patients        from './pages/Patients'
-import PatientDetail   from './pages/PatientDetail'
-import Archive         from './pages/Archive'
+import FacilityDetail from './pages/FacilityDetail'
+import Patients       from './pages/Patients'
+import PatientDetail  from './pages/PatientDetail'
+import Archive        from './pages/Archive'
+
+// Redirects to /login if not authenticated; shows nothing while session loads
+function RequireAuth({ children }) {
+  const { user } = useAuth()
+  if (user === undefined) return null // still checking — avoid flash
+  if (!user) return <Navigate to="/login" replace />
+  return children
+}
+
+// The shell (sidebar + header + main) shown only to authenticated users
+function AppShell() {
+  return (
+    <FacilitiesProvider>
+    <PatientsProvider>
+    <OrdersProvider>
+      <div className="flex h-screen bg-slate-50 overflow-hidden">
+        <Sidebar />
+        <div className="flex flex-col flex-1 min-w-0">
+          <Header />
+          <main className="flex-1 overflow-y-auto p-6">
+            <Routes>
+              <Route path="/"               element={<Dashboard />}      />
+              <Route path="/facilities"     element={<Facilities />}     />
+              <Route path="/facilities/:id" element={<FacilityDetail />} />
+              <Route path="/patients"       element={<Patients />}       />
+              <Route path="/patients/:id"   element={<PatientDetail />}  />
+              <Route path="/archive"        element={<Archive />}        />
+              <Route path="/orders"         element={<Orders />}         />
+              <Route path="/orders/new"     element={<NewOrder />}       />
+              <Route path="/orders/:id"     element={<OrderDetail />}    />
+              <Route path="/schedule"       element={<Schedule />}       />
+              <Route path="/reports"        element={<Reports />}        />
+              <Route path="/billing"        element={<Billing />}        />
+            </Routes>
+          </main>
+        </div>
+      </div>
+    </OrdersProvider>
+    </PatientsProvider>
+    </FacilitiesProvider>
+  )
+}
 
 export default function App() {
   return (
-    // BrowserRouter must be the outermost wrapper so every component inside can use
-    // routing hooks (useLocation, NavLink, useNavigate, etc.)
     <BrowserRouter>
-
-      {/* OrdersProvider sits just inside BrowserRouter so it can eventually use
-          routing too if needed, and so every page below can call useOrders(). */}
-      <FacilitiesProvider>
-      <PatientsProvider>
-      <OrdersProvider>
-
-        {/* Full-screen flex row: Sidebar on the left, everything else on the right.
-            overflow-hidden prevents double scrollbars — only <main> scrolls. */}
-        <div className="flex h-screen bg-slate-50 overflow-hidden">
-
-          {/* Sidebar is fixed-width and never scrolls */}
-          <Sidebar />
-
-          {/* Right column: Header on top, scrollable page content below */}
-          <div className="flex flex-col flex-1 min-w-0">
-
-            {/* Header stays pinned at the top — shrink-0 prevents it from collapsing */}
-            <Header />
-
-            {/* Main content area — this is the only part that scrolls when content is tall */}
-            <main className="flex-1 overflow-y-auto p-6">
-
-              {/* Routes checks the URL and renders the first matching Route.
-                  Only one page renders at a time. */}
-              <Routes>
-                <Route path="/"           element={<Dashboard />}  />
-                <Route path="/facilities"    element={<Facilities />}    />
-                <Route path="/facilities/:id" element={<FacilityDetail />} />
-                <Route path="/patients"       element={<Patients />}       />
-                <Route path="/patients/:id"   element={<PatientDetail />}  />
-                <Route path="/archive"        element={<Archive />}         />
-                <Route path="/orders"     element={<Orders />}     />
-                <Route path="/orders/new" element={<NewOrder />}     />
-                <Route path="/orders/:id" element={<OrderDetail />} />
-                <Route path="/schedule"   element={<Schedule />}   />
-                <Route path="/reports"    element={<Reports />}    />
-                <Route path="/billing"    element={<Billing />}    />
-              </Routes>
-
-            </main>
-          </div>
-        </div>
-
-      </OrdersProvider>
-      </PatientsProvider>
-      </FacilitiesProvider>
+      <ToastProvider>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/*" element={
+            <RequireAuth>
+              <AppShell />
+            </RequireAuth>
+          } />
+        </Routes>
+      </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   )
 }

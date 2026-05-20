@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { useOrders } from '../context/OrdersContext'
 import { useFacilities } from '../context/FacilitiesContext'
+import { useToast } from '../context/ToastContext'
 
 const examTypes = [
   'Venous Doppler',
@@ -24,6 +25,7 @@ const billingStatusOptions = ['Not Started', 'Pending', 'Ready']
 export default function EditOrderModal({ order, onClose }) {
   const { updateOrder } = useOrders()
   const { facilities }  = useFacilities()
+  const { toast }       = useToast()
 
   // Pre-fill the form with the existing order's values
   const [formData, setFormData] = useState({
@@ -60,6 +62,7 @@ export default function EditOrderModal({ order, onClose }) {
         ...formData,
         patientInitials: formData.patientInitials.trim().toUpperCase(),
       })
+      toast('Order updated')
       onClose() // Close the modal only after a successful save
     } catch (err) {
       setSaveError(err.message)

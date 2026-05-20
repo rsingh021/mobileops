@@ -54,6 +54,18 @@ export default function Facilities() {
           </button>
         </div>
 
+        {facilities.length === 0 ? (
+          <div className="px-5 py-16 text-center">
+            <p className="text-sm font-medium text-slate-600">No facilities added yet</p>
+            <p className="text-sm text-slate-400 mt-1">Add the facilities you partner with to start creating orders.</p>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="mt-4 inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              + Add First Facility
+            </button>
+          </div>
+        ) : (
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-100">
@@ -96,9 +108,9 @@ export default function Facilities() {
             })}
           </tbody>
         </table>
+        )}
       </div>
 
-
-</div>
+    </div>
   )
 }

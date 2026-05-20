@@ -3,9 +3,10 @@
 // Step 2: Fill in order details, then submit linked to the patient.
 
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
 import { useFacilities } from '../context/FacilitiesContext'
+import { useToast } from '../context/ToastContext'
 import { supabase } from '../lib/supabase'
 
 const examTypes = [
@@ -21,43 +22,49 @@ const statusOptions  = ['Requested', 'Scheduled', 'Completed', 'Report Sent', 'B
 const billingOptions = ['Not Started', 'Pending', 'Ready']
 
 export default function NewOrder() {
-  const navigate = useNavigate()
-  const { addOrder }    = useOrders()
-  const { facilities }  = useFacilities()
+  const navigate   = useNavigate()
+  const location   = useLocation()
+  const prefill    = location.state ?? {}
+
+  const { addOrder }   = useOrders()
+  const { facilities } = useFacilities()
+  const { toast }      = useToast()
 
   // ── Step tracking ─────────────────────────────────────────────────────────
-  // step 1 = patient search/create, step 2 = order details
-  const [step, setStep] = useState(1)
+  // If a patient was passed in via navigation state, skip straight to step 2
+  const [step, setStep] = useState(prefill.patient ? 2 : 1)
 
   // ── Step 1 state ──────────────────────────────────────────────────────────
   const [searchFirst, setSearchFirst] = useState('')
   const [searchLast,  setSearchLast]  = useState('')
-  const [searchResults, setSearchResults] = useState([]) // null = not searched yet
+  const [searchResults, setSearchResults] = useState([])
   const [searched, setSearched]           = useState(false)
   const [searching, setSearching]         = useState(false)
 
-  // New-patient form (shown when no match is found or user wants to create new)
   const [newPatientDob,   setNewPatientDob]   = useState('')
   const [newPatientPhone, setNewPatientPhone] = useState('')
   const [creatingPatient, setCreatingPatient] = useState(false)
   const [patientError,    setPatientError]    = useState(null)
 
-  // The patient chosen or created in step 1
-  const [selectedPatient, setSelectedPatient] = useState(null)
+  // Pre-filled from PatientDetail navigation, or null until selected in step 1
+  const [selectedPatient, setSelectedPatient] = useState(prefill.patient ?? null)
 
   // ── Step 2 state ──────────────────────────────────────────────────────────
+  const today = new Date()
+  const todayYMD = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
+
   const [orderData, setOrderData] = useState({
-    facility:      '',
+    facility:      prefill.facilityName ?? '',
     examType:      'Venous Doppler',
     status:        'Requested',
     billingStatus: 'Not Started',
-    date:          new Date().toISOString().slice(0, 10),
+    date:          todayYMD,
     time:          '',
   })
-  const [submitting,   setSubmitting]   = useState(false)
-  const [submitError,  setSubmitError]  = useState(null)
+  const [submitting,  setSubmitting]  = useState(false)
+  const [submitError, setSubmitError] = useState(null)
 
-  // Default facility once loaded
+  // Default facility once loaded — only if not pre-filled
   useEffect(() => {
     if (facilities.length > 0 && !orderData.facility) {
       setOrderData(cur => ({ ...cur, facility: facilities[0].name }))
@@ -164,6 +171,7 @@ export default function NewOrder() {
         patientId:       selectedPatient.id,
         patientInitials: initials,
       })
+      toast('Order created')
       navigate('/orders')
     } catch (err) {
       setSubmitError(err.message)

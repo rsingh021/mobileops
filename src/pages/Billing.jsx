@@ -75,19 +75,32 @@ export default function Billing() {
             </tr>
           </thead>
           <tbody>
-            {orders.map(order => (
-              <tr key={order.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                <td className="px-5 py-3.5 text-sm font-medium text-slate-800">{order.facility}</td>
-                <td className="px-5 py-3.5 text-sm text-slate-600">{order.examType}</td>
-                <td className="px-5 py-3.5 text-sm text-slate-600">{order.patientInitials}</td>
-                <td className="px-5 py-3.5 text-sm text-slate-400">{order.date}</td>
-                <td className="px-5 py-3.5">
-                  <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${billingColors[order.billingStatus] ?? 'bg-slate-100 text-slate-600'}`}>
-                    {order.billingStatus}
-                  </span>
+            {orders.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-5 py-16 text-center">
+                  <p className="text-sm font-medium text-slate-600">No orders yet</p>
+                  <p className="text-sm text-slate-400 mt-1">Billing data will appear here once orders are created.</p>
                 </td>
               </tr>
-            ))}
+            ) : (
+              orders.map(order => (
+                <tr key={order.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                  <td className="px-5 py-3.5 text-sm font-medium text-slate-800">{order.facility}</td>
+                  <td className="px-5 py-3.5 text-sm text-slate-600">{order.examType}</td>
+                  <td className="px-5 py-3.5 text-sm text-slate-600">
+                    {order.patient
+                      ? `${order.patient.firstName} ${order.patient.lastName}`
+                      : order.patientInitials ?? '—'}
+                  </td>
+                  <td className="px-5 py-3.5 text-sm text-slate-400">{order.date ?? '—'}</td>
+                  <td className="px-5 py-3.5">
+                    <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${billingColors[order.billingStatus] ?? 'bg-slate-100 text-slate-600'}`}>
+                      {order.billingStatus}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

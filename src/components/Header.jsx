@@ -35,7 +35,9 @@ export default function Header() {
 
       {/* Right side: date display + New Order button */}
       <div className="flex items-center gap-3">
-        <span className="text-sm text-slate-400">May 7, 2026</span>
+        <span className="text-sm text-slate-400">
+          {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+        </span>
 
         {/* Link navigates to the New Order form page without a browser refresh.
             Styled to look like a button using Tailwind classes. */}

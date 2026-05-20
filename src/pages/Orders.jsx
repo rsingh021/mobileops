@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
 import { useFacilities } from '../context/FacilitiesContext'
 import StatusSelect from '../components/StatusSelect'
@@ -32,6 +32,13 @@ export default function Orders() {
   const [examFilter,     setExamFilter]     = useState('All')
   const [sort,           setSort]           = useState('newest')
 
+  // ── Pagination ─────────────────────────────────────────────────────────────
+  const PAGE_SIZE = 25
+  const [page, setPage] = useState(1)
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => { setPage(1) }, [search, statusFilter, billingFilter, facilityFilter, examFilter, sort])
+
   const hasActiveFilters =
     search !== '' ||
     statusFilter  !== 'All' ||
@@ -55,10 +62,10 @@ export default function Orders() {
 
     return orders
       .filter(o => {
-        if (statusFilter  !== 'All' && o.status        !== statusFilter)  return false
-        if (billingFilter !== 'All' && o.billingStatus !== billingFilter) return false
-        if (facilityFilter !== 'All' && o.facility     !== facilityFilter) return false
-        if (examFilter    !== 'All' && o.examType      !== examFilter)    return false
+        if (statusFilter   !== 'All' && o.status        !== statusFilter)   return false
+        if (billingFilter  !== 'All' && o.billingStatus !== billingFilter)  return false
+        if (facilityFilter !== 'All' && o.facility      !== facilityFilter) return false
+        if (examFilter     !== 'All' && o.examType      !== examFilter)     return false
 
         if (q) {
           const patientName = o.patient
@@ -76,6 +83,12 @@ export default function Orders() {
         return sort === 'newest' ? db - da : da - db
       })
   }, [orders, search, statusFilter, billingFilter, facilityFilter, examFilter, sort])
+
+  const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
+  const safePage   = Math.min(page, totalPages)
+  const paginated  = visible.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const rangeStart = visible.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1
+  const rangeEnd   = Math.min(safePage * PAGE_SIZE, visible.length)
 
   if (loading) return (
     <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
@@ -165,8 +178,9 @@ export default function Orders() {
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-semibold text-slate-800">Imaging Orders</h3>
           <span className="text-xs text-slate-400">
-            {visible.length} result{visible.length !== 1 ? 's' : ''}
-            {hasActiveFilters && ` of ${orders.length}`}
+            {visible.length === 0
+              ? 'No results'
+              : `${rangeStart}–${rangeEnd} of ${visible.length}${hasActiveFilters ? ` (filtered from ${orders.length})` : ''}`}
           </span>
         </div>
 
@@ -184,14 +198,27 @@ export default function Orders() {
           </thead>
 
           <tbody>
-            {visible.length === 0 ? (
+            {paginated.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-400">
-                  No orders match your search or filters.
+                <td colSpan={7} className="px-5 py-16 text-center">
+                  {orders.length === 0 ? (
+                    <>
+                      <p className="text-sm font-medium text-slate-600">No orders yet</p>
+                      <p className="text-sm text-slate-400 mt-1">Create your first order to get started.</p>
+                      <Link
+                        to="/orders/new"
+                        className="mt-4 inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                      >
+                        + Create First Order
+                      </Link>
+                    </>
+                  ) : (
+                    <p className="text-sm text-slate-400">No orders match your search or filters.</p>
+                  )}
                 </td>
               </tr>
             ) : (
-              visible.map(order => (
+              paginated.map(order => (
                 <tr
                   key={order.id}
                   onClick={() => navigate(`/orders/${order.id}`)}
@@ -222,6 +249,29 @@ export default function Orders() {
             )}
           </tbody>
         </table>
+
+        {/* ── Pagination controls ──────────────────────────────────────────── */}
+        {totalPages > 1 && (
+          <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={safePage === 1}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-default"
+            >
+              ← Prev
+            </button>
+            <span className="text-sm text-slate-500">
+              Page {safePage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={safePage === totalPages}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-default"
+            >
+              Next →
+            </button>
+          </div>
+        )}
 
       </div>
     </div>

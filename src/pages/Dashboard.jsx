@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
 import StatusBadge from '../components/StatusBadge'
 
@@ -10,7 +10,12 @@ function getThisWeek() {
   monday.setDate(today.getDate() - ((day + 6) % 7))
   const sunday = new Date(monday)
   sunday.setDate(monday.getDate() + 6)
-  const fmt = d => d.toISOString().slice(0, 10)
+  const fmt = d => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
   return { weekStart: fmt(monday), weekEnd: fmt(sunday), todayStr: fmt(today) }
 }
 
@@ -54,6 +59,35 @@ export default function Dashboard() {
   )
 
   const { weekStart, weekEnd, todayStr } = getThisWeek()
+
+  // ── New account empty state ────────────────────────────────────────────────
+  if (orders.length === 0) return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+        <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      </div>
+      <h2 className="text-lg font-semibold text-slate-800">No orders yet</h2>
+      <p className="text-sm text-slate-400 mt-1 max-w-xs">
+        Create your first order to start tracking imaging visits, reports, and billing.
+      </p>
+      <div className="flex gap-3 mt-6">
+        <Link
+          to="/facilities"
+          className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          Add a Facility
+        </Link>
+        <Link
+          to="/orders/new"
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          + Create First Order
+        </Link>
+      </div>
+    </div>
+  )
 
   // ── Derived data ───────────────────────────────────────────────────────────
 

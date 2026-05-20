@@ -16,6 +16,8 @@ export function FacilitiesProvider({ children }) {
 
   // Fetch all facilities from Supabase when the app first loads
   useEffect(() => {
+    let cancelled = false
+
     async function fetchFacilities() {
       try {
         const { data, error } = await supabase
@@ -24,16 +26,46 @@ export function FacilitiesProvider({ children }) {
           .is('archived_at', null)
           .order('name', { ascending: true })
 
+        if (cancelled) return
         if (error) throw error
         setFacilities(data)
       } catch (err) {
-        setError(err.message)
+        if (!cancelled) setError(err.message)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     fetchFacilities()
+
+    const byName = (a, b) => a.name.localeCompare(b.name)
+
+    const channel = supabase
+      .channel('facilities-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'facilities' }, ({ new: row }) => {
+        if (row.archived_at) return
+        setFacilities(cur => cur.some(f => f.id === row.id) ? cur : [...cur, row].sort(byName))
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'facilities' }, ({ new: row }) => {
+        if (row.archived_at) {
+          setFacilities(cur => cur.filter(f => f.id !== row.id))
+          return
+        }
+        setFacilities(cur =>
+          cur.some(f => f.id === row.id)
+            ? cur.map(f => f.id === row.id ? row : f).sort(byName)
+            : [...cur, row].sort(byName)
+        )
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'facilities' }, ({ old: row }) => {
+        setFacilities(cur => cur.filter(f => f.id !== row.id))
+      })
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   // addFacility — inserts a new facility into Supabase and prepends it to local state

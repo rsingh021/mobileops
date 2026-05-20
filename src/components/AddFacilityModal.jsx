@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useFacilities } from '../context/FacilitiesContext'
+import { useToast } from '../context/ToastContext'
 
 export default function AddFacilityModal({ onClose }) {
   const { addFacility } = useFacilities()
+  const { toast }       = useToast()
 
   const [formData, setFormData] = useState({
     name:    '',
@@ -38,6 +40,7 @@ export default function AddFacilityModal({ onClose }) {
         contact: formData.contact.trim() || null,
         phone:   formData.phone.trim()   || null,
       })
+      toast('Facility added')
       onClose()
     } catch (err) {
       setSaveError(err.message)

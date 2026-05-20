@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useFacilities } from '../context/FacilitiesContext'
 import { useOrders } from '../context/OrdersContext'
-import StatusBadge from '../components/StatusBadge'
+import { useToast } from '../context/ToastContext'
+import StatusBadge       from '../components/StatusBadge'
 import EditFacilityModal from '../components/EditFacilityModal'
 import ConfirmModal      from '../components/ConfirmModal'
 
@@ -12,6 +13,7 @@ export default function FacilityDetail() {
   const { facilities, loading: facilitiesLoading, archiveFacility } = useFacilities()
   const { orders,     loading: ordersLoading }                       = useOrders()
 
+  const { toast } = useToast()
   const [editing,        setEditing]        = useState(false)
   const [confirmArchive, setConfirmArchive] = useState(false)
 
@@ -54,12 +56,20 @@ export default function FacilityDetail() {
         >
           ← Facilities
         </button>
-        <button
-          onClick={() => setEditing(true)}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          Edit Facility
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate('/orders/new', { state: { facilityName: facility.name } })}
+            className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
+          >
+            + New Order
+          </button>
+          <button
+            onClick={() => setEditing(true)}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Edit Facility
+          </button>
+        </div>
       </div>
 
       {/* ── Facility info ─────────────────────────────────────────────────── */}
@@ -157,6 +167,7 @@ export default function FacilityDetail() {
           danger
           onConfirm={async () => {
             await archiveFacility(facility.id)
+            toast('Facility archived')
             navigate('/facilities')
           }}
           onClose={() => setConfirmArchive(false)}

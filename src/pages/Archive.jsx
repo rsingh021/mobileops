@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useOrders } from '../context/OrdersContext'
 import { useFacilities } from '../context/FacilitiesContext'
 import { usePatients } from '../context/PatientsContext'
+import { useToast } from '../context/ToastContext'
 
 const TABS = ['Orders', 'Patients', 'Facilities']
 
@@ -48,6 +49,7 @@ export default function Archive() {
 function ArchivedOrders() {
   const navigate = useNavigate()
   const { restoreOrder } = useOrders()
+  const { toast } = useToast()
   const [rows,    setRows]    = useState([])
   const [loading, setLoading] = useState(true)
   const [restoring, setRestoring] = useState(null)
@@ -66,6 +68,7 @@ function ArchivedOrders() {
     await restoreOrder(id)
     setRows(r => r.filter(x => x.id !== id))
     setRestoring(null)
+    toast('Order restored')
   }
 
   return (
@@ -107,6 +110,7 @@ function ArchivedOrders() {
 
 function ArchivedPatients() {
   const { restorePatient } = usePatients()
+  const { toast } = useToast()
   const [rows,    setRows]    = useState([])
   const [loading, setLoading] = useState(true)
   const [restoring, setRestoring] = useState(null)
@@ -125,6 +129,7 @@ function ArchivedPatients() {
     await restorePatient(id)
     setRows(r => r.filter(x => x.id !== id))
     setRestoring(null)
+    toast('Patient restored')
   }
 
   return (
@@ -162,6 +167,7 @@ function ArchivedPatients() {
 
 function ArchivedFacilities() {
   const { restoreFacility } = useFacilities()
+  const { toast } = useToast()
   const [rows,    setRows]    = useState([])
   const [loading, setLoading] = useState(true)
   const [restoring, setRestoring] = useState(null)
@@ -180,6 +186,7 @@ function ArchivedFacilities() {
     await restoreFacility(id)
     setRows(r => r.filter(x => x.id !== id))
     setRestoring(null)
+    toast('Facility restored')
   }
 
   return (

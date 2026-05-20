@@ -19,6 +19,8 @@ export function PatientsProvider({ children }) {
   const [error, setError]       = useState(null)
 
   useEffect(() => {
+    let cancelled = false
+
     async function fetchPatients() {
       try {
         const { data, error } = await supabase
@@ -27,15 +29,48 @@ export function PatientsProvider({ children }) {
           .is('archived_at', null)
           .order('last_name', { ascending: true })
 
+        if (cancelled) return
         if (error) throw error
         setPatients(data.map(toJS))
       } catch (err) {
-        setError(err.message)
+        if (!cancelled) setError(err.message)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
+
     fetchPatients()
+
+    const byLastName = (a, b) => a.lastName.localeCompare(b.lastName)
+
+    const channel = supabase
+      .channel('patients-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'patients' }, ({ new: row }) => {
+        if (row.archived_at) return
+        const patient = toJS(row)
+        setPatients(cur => cur.some(p => p.id === patient.id) ? cur : [...cur, patient].sort(byLastName))
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'patients' }, ({ new: row }) => {
+        if (row.archived_at) {
+          setPatients(cur => cur.filter(p => p.id !== row.id))
+          return
+        }
+        const patient = toJS(row)
+        setPatients(cur =>
+          cur.some(p => p.id === patient.id)
+            ? cur.map(p => p.id === patient.id ? patient : p).sort(byLastName)
+            : [...cur, patient].sort(byLastName)
+        )
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'patients' }, ({ old: row }) => {
+        setPatients(cur => cur.filter(p => p.id !== row.id))
+      })
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   // addPatient — inserts a new patient and appends to local state
@@ -56,6 +91,27 @@ export function PatientsProvider({ children }) {
     setPatients(current => [...current, patient].sort((a, b) =>
       a.lastName.localeCompare(b.lastName)
     ))
+    return patient
+  }
+
+  async function updatePatient(id, changes) {
+    const { data, error } = await supabase
+      .from('patients')
+      .update({
+        ...(changes.firstName !== undefined && { first_name:    changes.firstName }),
+        ...(changes.lastName  !== undefined && { last_name:     changes.lastName }),
+        ...(changes.dob       !== undefined && { date_of_birth: changes.dob }),
+        ...(changes.phone     !== undefined && { phone:         changes.phone }),
+      })
+      .eq('id', id)
+      .select('*')
+      .single()
+
+    if (error) throw error
+    const patient = toJS(data)
+    setPatients(cur =>
+      cur.map(p => p.id === id ? patient : p).sort((a, b) => a.lastName.localeCompare(b.lastName))
+    )
     return patient
   }
 
@@ -80,7 +136,7 @@ export function PatientsProvider({ children }) {
   }
 
   return (
-    <PatientsContext.Provider value={{ patients, loading, error, addPatient, archivePatient, restorePatient }}>
+    <PatientsContext.Provider value={{ patients, loading, error, addPatient, updatePatient, archivePatient, restorePatient }}>
       {children}
     </PatientsContext.Provider>
   )

@@ -52,6 +52,8 @@ export function OrdersProvider({ children }) {
   const [error, setError]     = useState(null)
 
   useEffect(() => {
+    let cancelled = false
+
     async function fetchOrders() {
       try {
         const { data, error } = await supabase
@@ -60,15 +62,57 @@ export function OrdersProvider({ children }) {
           .is('archived_at', null)
           .order('created_at', { ascending: false })
 
+        if (cancelled) return
         if (error) throw error
         setOrders(data.map(toJS))
       } catch (err) {
-        setError(err.message)
+        if (!cancelled) setError(err.message)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
+
     fetchOrders()
+
+    async function refetchRow(id) {
+      const { data } = await supabase
+        .from('orders')
+        .select('*, patients(id, first_name, last_name, date_of_birth, phone)')
+        .eq('id', id)
+        .single()
+      return data
+    }
+
+    const channel = supabase
+      .channel('orders-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, async ({ new: row }) => {
+        if (row.archived_at) return
+        const data = await refetchRow(row.id)
+        if (!data) return
+        setOrders(cur => cur.some(o => o.id === data.id) ? cur : [toJS(data), ...cur])
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, async ({ new: row }) => {
+        if (row.archived_at) {
+          setOrders(cur => cur.filter(o => o.id !== row.id))
+          return
+        }
+        const data = await refetchRow(row.id)
+        if (!data) return
+        setOrders(cur =>
+          cur.some(o => o.id === data.id)
+            ? cur.map(o => o.id === data.id ? toJS(data) : o)
+            : [toJS(data), ...cur]
+        )
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'orders' }, ({ old: row }) => {
+        setOrders(cur => cur.filter(o => o.id !== row.id))
+      })
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   // addOrder — inserts a new order and returns it with the joined patient already attached
