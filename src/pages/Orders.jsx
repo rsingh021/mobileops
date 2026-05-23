@@ -4,15 +4,7 @@ import { useOrders } from '../context/OrdersContext'
 import { useFacilities } from '../context/FacilitiesContext'
 import StatusSelect from '../components/StatusSelect'
 import EditOrderModal from '../components/EditOrderModal'
-
-const examTypes = [
-  'Venous Doppler',
-  'Echocardiogram',
-  'Abdominal Ultrasound',
-  'Carotid Doppler',
-  'Arterial Doppler',
-  'Renal Ultrasound',
-]
+import { EXAM_TYPES } from '../data/exams'
 
 const statusOptions  = ['All', 'Requested', 'Scheduled', 'Completed', 'Report Sent', 'Billed']
 const billingOptions = ['All', 'Not Started', 'Pending', 'Ready']
@@ -166,7 +158,7 @@ export default function Orders() {
             label="Exam Type"
             value={examFilter}
             onChange={setExamFilter}
-            options={['All', ...examTypes]}
+            options={['All', ...EXAM_TYPES]}
           />
 
         </div>

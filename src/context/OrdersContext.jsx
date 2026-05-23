@@ -21,12 +21,13 @@ function toJS(row) {
       dob:       row.patients.date_of_birth,
       phone:     row.patients.phone,
     } : null,
-    status:        row.status,
-    billingStatus: row.billing_status,
-    date:          row.date,
-    time:          row.time ?? null,
-    updatedAt:     row.updated_at,
-    createdAt:     row.created_at,
+    status:             row.status,
+    billingStatus:      row.billing_status,
+    clinicalIndication: row.clinical_indication ?? null,
+    date:               row.date,
+    time:               row.time ?? null,
+    updatedAt:          row.updated_at,
+    createdAt:          row.created_at,
   }
 }
 
@@ -37,10 +38,11 @@ function toDB(order) {
     exam_type:        order.examType,
     patient_initials: order.patientInitials ?? null,
     patient_id:       order.patientId ?? null,
-    status:           order.status,
-    billing_status:   order.billingStatus,
-    date:             order.date,
-    time:             order.time ?? null,
+    status:              order.status,
+    billing_status:      order.billingStatus,
+    clinical_indication: order.clinicalIndication ?? null,
+    date:                order.date,
+    time:                order.time ?? null,
   }
 }
 
@@ -136,8 +138,9 @@ export function OrdersProvider({ children }) {
       ...(changes.patientInitials !== undefined && { patient_initials: changes.patientInitials }),
       ...(changes.patientId       !== undefined && { patient_id:       changes.patientId }),
       ...(changes.status          !== undefined && { status:           changes.status }),
-      ...(changes.billingStatus   !== undefined && { billing_status:   changes.billingStatus }),
-      ...(changes.date            !== undefined && { date:             changes.date }),
+      ...(changes.billingStatus      !== undefined && { billing_status:      changes.billingStatus }),
+      ...(changes.clinicalIndication !== undefined && { clinical_indication: changes.clinicalIndication }),
+      ...(changes.date               !== undefined && { date:                changes.date }),
       ...(changes.time            !== undefined && { time:             changes.time }),
     }
 

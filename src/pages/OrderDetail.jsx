@@ -161,9 +161,10 @@ export default function OrderDetail() {
               <p className="text-xs text-slate-400 mt-0.5">{facility.city}</p>
             )}
           </div>
-          <Field label="Exam Type" value={order.examType} />
-          <Field label="Date"     value={order.date ?? '—'} />
-          <Field label="Time"     value={order.time ? formatTime(order.time) : '—'} />
+          <Field label="Exam Type"           value={order.examType} />
+          <Field label="Clinical Indication" value={order.clinicalIndication ?? '—'} />
+          <Field label="Date"                value={order.date ?? '—'} />
+          <Field label="Time"                value={order.time ? formatTime(order.time) : '—'} />
 
           <div>
             <p className="text-xs text-slate-400 mb-1">Status</p>

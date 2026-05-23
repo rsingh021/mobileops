@@ -8,15 +8,8 @@ import { useOrders } from '../context/OrdersContext'
 import { useFacilities } from '../context/FacilitiesContext'
 import { useToast } from '../context/ToastContext'
 import { supabase } from '../lib/supabase'
-
-const examTypes = [
-  'Venous Doppler',
-  'Echocardiogram',
-  'Abdominal Ultrasound',
-  'Carotid Doppler',
-  'Arterial Doppler',
-  'Renal Ultrasound',
-]
+import { EXAM_TYPES } from '../data/exams'
+import IndicationInput from '../components/IndicationInput'
 
 const statusOptions  = ['Requested', 'Scheduled', 'Completed', 'Report Sent', 'Billed']
 const billingOptions = ['Not Started', 'Pending', 'Ready']
@@ -54,12 +47,13 @@ export default function NewOrder() {
   const todayYMD = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
 
   const [orderData, setOrderData] = useState({
-    facility:      prefill.facilityName ?? '',
-    examType:      'Venous Doppler',
-    status:        'Requested',
-    billingStatus: 'Not Started',
-    date:          todayYMD,
-    time:          '',
+    facility:           prefill.facilityName ?? '',
+    examType:           EXAM_TYPES[0],
+    status:             'Requested',
+    billingStatus:      'Not Started',
+    clinicalIndication: '',
+    date:               todayYMD,
+    time:               '',
   })
   const [submitting,  setSubmitting]  = useState(false)
   const [submitError, setSubmitError] = useState(null)
@@ -383,13 +377,26 @@ export default function NewOrder() {
               <select
                 name="examType"
                 value={orderData.examType}
-                onChange={handleOrderChange}
+                onChange={e => {
+                  handleOrderChange(e)
+                  setOrderData(cur => ({ ...cur, clinicalIndication: '' }))
+                }}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               >
-                {examTypes.map(t => (
+                {EXAM_TYPES.map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Clinical Indication</label>
+              <IndicationInput
+                examType={orderData.examType}
+                value={orderData.clinicalIndication}
+                onChange={val => setOrderData(cur => ({ ...cur, clinicalIndication: val }))}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-3">

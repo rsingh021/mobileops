@@ -9,17 +9,10 @@ import { useState } from 'react'
 import { useOrders } from '../context/OrdersContext'
 import { useFacilities } from '../context/FacilitiesContext'
 import { useToast } from '../context/ToastContext'
+import { EXAM_TYPES } from '../data/exams'
+import IndicationInput from './IndicationInput'
 
-const examTypes = [
-  'Venous Doppler',
-  'Echocardiogram',
-  'Abdominal Ultrasound',
-  'Carotid Doppler',
-  'Arterial Doppler',
-  'Renal Ultrasound',
-]
-
-const statusOptions      = ['Requested', 'Scheduled', 'Completed', 'Report Sent', 'Billed']
+const statusOptions        = ['Requested', 'Scheduled', 'Completed', 'Report Sent', 'Billed']
 const billingStatusOptions = ['Not Started', 'Pending', 'Ready']
 
 export default function EditOrderModal({ order, onClose }) {
@@ -29,13 +22,14 @@ export default function EditOrderModal({ order, onClose }) {
 
   // Pre-fill the form with the existing order's values
   const [formData, setFormData] = useState({
-    facility:        order.facility,
-    examType:        order.examType,
-    patientInitials: order.patientInitials,
-    status:          order.status,
-    billingStatus:   order.billingStatus,
-    date:            order.date,
-    time:            order.time ?? '',
+    facility:           order.facility,
+    examType:           order.examType,
+    patientInitials:    order.patientInitials,
+    status:             order.status,
+    billingStatus:      order.billingStatus,
+    clinicalIndication: order.clinicalIndication ?? '',
+    date:               order.date,
+    time:               order.time ?? '',
   })
 
   const [saving, setSaving]     = useState(false)
@@ -60,7 +54,8 @@ export default function EditOrderModal({ order, onClose }) {
     try {
       await updateOrder(order.id, {
         ...formData,
-        patientInitials: formData.patientInitials.trim().toUpperCase(),
+        patientInitials:    formData.patientInitials.trim().toUpperCase(),
+        clinicalIndication: formData.clinicalIndication.trim() || null,
       })
       toast('Order updated')
       onClose() // Close the modal only after a successful save
@@ -136,13 +131,27 @@ export default function EditOrderModal({ order, onClose }) {
             <select
               name="examType"
               value={formData.examType}
-              onChange={handleChange}
+              onChange={e => {
+                handleChange(e)
+                setFormData(cur => ({ ...cur, clinicalIndication: '' }))
+              }}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             >
-              {examTypes.map(t => (
+              {EXAM_TYPES.map(t => (
                 <option key={t} value={t}>{t}</option>
               ))}
             </select>
+          </div>
+
+          {/* ── Clinical Indication ───────────────────────── */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Clinical Indication</label>
+            <IndicationInput
+              examType={formData.examType}
+              value={formData.clinicalIndication}
+              onChange={val => setFormData(cur => ({ ...cur, clinicalIndication: val }))}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
           </div>
 
           {/* ── Patient Initials ──────────────────────────── */}
