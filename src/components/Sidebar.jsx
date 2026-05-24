@@ -6,6 +6,7 @@ const nav = [
   { label: 'Orders',     to: '/orders' },
   { label: 'Patients',   to: '/patients' },
   { label: 'Facilities', to: '/facilities' },
+  { label: 'Upcoming',   to: '/upcoming' },
   { label: 'Schedule',   to: '/schedule' },
   { label: 'Reports',    to: '/reports' },
   { label: 'Billing',    to: '/billing' },

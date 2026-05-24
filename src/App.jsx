@@ -29,6 +29,7 @@ import FacilityDetail from './pages/FacilityDetail'
 import Patients       from './pages/Patients'
 import PatientDetail  from './pages/PatientDetail'
 import Archive        from './pages/Archive'
+import Upcoming       from './pages/Upcoming'
 
 // Redirects to /login if not authenticated; shows nothing while session loads
 function RequireAuth({ children }) {
@@ -59,6 +60,7 @@ function AppShell() {
               <Route path="/orders"         element={<Orders />}         />
               <Route path="/orders/new"     element={<NewOrder />}       />
               <Route path="/orders/:id"     element={<OrderDetail />}    />
+              <Route path="/upcoming"       element={<Upcoming />}       />
               <Route path="/schedule"       element={<Schedule />}       />
               <Route path="/reports"        element={<Reports />}        />
               <Route path="/billing"        element={<Billing />}        />

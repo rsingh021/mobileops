@@ -9,6 +9,34 @@ import { EXAM_TYPES } from '../data/exams'
 const statusOptions  = ['All', 'Requested', 'Scheduled', 'Completed', 'Report Sent', 'Billed']
 const billingOptions = ['All', 'Not Started', 'Pending', 'Ready']
 
+const DATE_PRESETS = [
+  ['today',      'Today'],
+  ['tomorrow',   'Tomorrow'],
+  ['this_week',  'This Week'],
+  ['next_7',     'Next 7 Days'],
+  ['this_month', 'This Month'],
+  ['custom',     'Custom'],
+]
+
+function toYMD(dt) {
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
+}
+
+function getDateRange(preset) {
+  const now = new Date()
+  const y = now.getFullYear(), m = now.getMonth(), d = now.getDate()
+  const today = toYMD(now)
+  if (preset === 'today')    return { from: today, to: today }
+  if (preset === 'tomorrow') { const t = toYMD(new Date(y, m, d+1)); return { from: t, to: t } }
+  if (preset === 'this_week') {
+    const dow = now.getDay()
+    return { from: toYMD(new Date(y, m, d - (dow === 0 ? 6 : dow-1))), to: toYMD(new Date(y, m, d + (dow === 0 ? 0 : 7-dow))) }
+  }
+  if (preset === 'next_7')     return { from: today, to: toYMD(new Date(y, m, d+7)) }
+  if (preset === 'this_month') return { from: toYMD(new Date(y, m, 1)), to: toYMD(new Date(y, m+1, 0)) }
+  return null
+}
+
 export default function Orders() {
   const { orders, loading, error } = useOrders()
   const { facilities }             = useFacilities()
@@ -23,13 +51,16 @@ export default function Orders() {
   const [facilityFilter, setFacilityFilter] = useState('All')
   const [examFilter,     setExamFilter]     = useState('All')
   const [sort,           setSort]           = useState('newest')
+  const [datePreset,     setDatePreset]     = useState('all')
+  const [customFrom,     setCustomFrom]     = useState('')
+  const [customTo,       setCustomTo]       = useState('')
 
   // ── Pagination ─────────────────────────────────────────────────────────────
   const PAGE_SIZE = 25
   const [page, setPage] = useState(1)
 
   // Reset to page 1 whenever filters change
-  useEffect(() => { setPage(1) }, [search, statusFilter, billingFilter, facilityFilter, examFilter, sort])
+  useEffect(() => { setPage(1) }, [search, statusFilter, billingFilter, facilityFilter, examFilter, sort, datePreset, customFrom, customTo])
 
   const hasActiveFilters =
     search !== '' ||
@@ -37,7 +68,8 @@ export default function Orders() {
     billingFilter !== 'All' ||
     facilityFilter !== 'All' ||
     examFilter    !== 'All' ||
-    sort          !== 'newest'
+    sort          !== 'newest' ||
+    datePreset    !== 'all'
 
   function clearAll() {
     setSearch('')
@@ -46,11 +78,25 @@ export default function Orders() {
     setFacilityFilter('All')
     setExamFilter('All')
     setSort('newest')
+    setDatePreset('all')
+    setCustomFrom('')
+    setCustomTo('')
   }
 
   // ── Derived visible list ───────────────────────────────────────────────────
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
+
+    let fromDate = null, toDate = null
+    if (datePreset !== 'all') {
+      if (datePreset === 'custom') {
+        fromDate = customFrom || null
+        toDate   = customTo   || null
+      } else {
+        const range = getDateRange(datePreset)
+        if (range) { fromDate = range.from; toDate = range.to }
+      }
+    }
 
     return orders
       .filter(o => {
@@ -58,6 +104,12 @@ export default function Orders() {
         if (billingFilter  !== 'All' && o.billingStatus !== billingFilter)  return false
         if (facilityFilter !== 'All' && o.facility      !== facilityFilter) return false
         if (examFilter     !== 'All' && o.examType      !== examFilter)     return false
+
+        if (fromDate || toDate) {
+          if (!o.date) return false
+          if (fromDate && o.date < fromDate) return false
+          if (toDate   && o.date > toDate)   return false
+        }
 
         if (q) {
           const patientName = o.patient
@@ -74,7 +126,7 @@ export default function Orders() {
         const db = new Date(b.date ?? 0)
         return sort === 'newest' ? db - da : da - db
       })
-  }, [orders, search, statusFilter, billingFilter, facilityFilter, examFilter, sort])
+  }, [orders, search, statusFilter, billingFilter, facilityFilter, examFilter, sort, datePreset, customFrom, customTo])
 
   const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
   const safePage   = Math.min(page, totalPages)
@@ -162,6 +214,42 @@ export default function Orders() {
           />
 
         </div>
+
+        {/* Row 3: date range presets */}
+        <div className="flex gap-1.5 flex-wrap items-center">
+          <span className="text-xs font-medium text-slate-400 mr-1">Date:</span>
+          {DATE_PRESETS.map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setDatePreset(datePreset === val ? 'all' : val)}
+              className={`rounded-lg px-2.5 py-1 text-xs font-medium border transition-colors ${
+                datePreset === val
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          {datePreset === 'custom' && (
+            <div className="flex items-center gap-1.5 ml-1">
+              <input
+                type="date"
+                value={customFrom}
+                onChange={e => setCustomFrom(e.target.value)}
+                className="rounded-lg border border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+              <span className="text-xs text-slate-400">to</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={e => setCustomTo(e.target.value)}
+                className="rounded-lg border border-slate-300 px-2 py-1 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* ── Orders table ──────────────────────────────────────────────────── */}
