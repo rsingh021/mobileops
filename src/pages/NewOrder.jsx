@@ -54,6 +54,8 @@ export default function NewOrder() {
     clinicalIndication: '',
     date:               todayYMD,
     time:               '',
+    authNumber:         '',
+    insuranceVerified:  false,
   })
   const [submitting,  setSubmitting]  = useState(false)
   const [submitError, setSubmitError] = useState(null)
@@ -76,7 +78,7 @@ export default function NewOrder() {
 
     const { data, error } = await supabase
       .from('patients')
-      .select('id, first_name, last_name, date_of_birth, phone')
+      .select('id, first_name, last_name, date_of_birth, phone, insurance_type, payer_name')
       .ilike('first_name', `%${searchFirst.trim()}%`)
       .ilike('last_name',  `%${searchLast.trim()}%`)
       .order('last_name', { ascending: true })
@@ -94,11 +96,13 @@ export default function NewOrder() {
 
   function selectPatient(row) {
     setSelectedPatient({
-      id:        row.id,
-      firstName: row.first_name,
-      lastName:  row.last_name,
-      dob:       row.date_of_birth,
-      phone:     row.phone,
+      id:            row.id,
+      firstName:     row.first_name,
+      lastName:      row.last_name,
+      dob:           row.date_of_birth,
+      phone:         row.phone,
+      insuranceType: row.insurance_type ?? 'Self-Pay',
+      payerName:     row.payer_name     ?? null,
     })
     setStep(2)
   }
@@ -332,7 +336,7 @@ export default function NewOrder() {
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
 
           {/* Selected patient banner */}
-          <div className="flex items-center justify-between rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
+          <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-blue-800">
                 {selectedPatient.firstName} {selectedPatient.lastName}
@@ -341,10 +345,15 @@ export default function NewOrder() {
                 {selectedPatient.dob ? `DOB: ${selectedPatient.dob}` : 'No DOB'}
                 {selectedPatient.phone ? `  ·  ${selectedPatient.phone}` : ''}
               </p>
+              <p className="text-xs text-blue-500 mt-1">
+                {selectedPatient.insuranceType === 'Insurance'
+                  ? `Insurance${selectedPatient.payerName ? `: ${selectedPatient.payerName}` : ''}`
+                  : 'Self-Pay'}
+              </p>
             </div>
             <button
               onClick={() => { setStep(1); setSelectedPatient(null) }}
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium flex-shrink-0"
             >
               Change patient
             </button>
@@ -448,6 +457,35 @@ export default function NewOrder() {
                 />
               </div>
             </div>
+
+            {selectedPatient?.insuranceType === 'Insurance' && (
+              <div className="border-t border-slate-100 pt-4 space-y-3">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Authorization</p>
+                <div className="grid grid-cols-2 gap-3 items-end">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                      Auth Number <span className="text-slate-400 font-normal">(optional)</span>
+                    </label>
+                    <input
+                      name="authNumber"
+                      value={orderData.authNumber}
+                      onChange={handleOrderChange}
+                      placeholder="Authorization #"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2.5 cursor-pointer pb-2">
+                    <input
+                      type="checkbox"
+                      checked={orderData.insuranceVerified}
+                      onChange={e => setOrderData(cur => ({ ...cur, insuranceVerified: e.target.checked }))}
+                      className="w-4 h-4 accent-blue-600"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Insurance Verified</span>
+                  </label>
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
               <button

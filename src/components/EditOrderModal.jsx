@@ -29,7 +29,9 @@ export default function EditOrderModal({ order, onClose }) {
     billingStatus:      order.billingStatus,
     clinicalIndication: order.clinicalIndication ?? '',
     date:               order.date,
-    time:               order.time ?? '',
+    time:               order.time              ?? '',
+    authNumber:         order.authNumber         ?? '',
+    insuranceVerified:  order.insuranceVerified  ?? false,
   })
 
   const [saving, setSaving]     = useState(false)
@@ -56,6 +58,7 @@ export default function EditOrderModal({ order, onClose }) {
         ...formData,
         patientInitials:    formData.patientInitials.trim().toUpperCase(),
         clinicalIndication: formData.clinicalIndication.trim() || null,
+        authNumber:         formData.authNumber.trim() || null,
       })
       toast('Order updated')
       onClose() // Close the modal only after a successful save
@@ -216,6 +219,36 @@ export default function EditOrderModal({ order, onClose }) {
               />
             </div>
           </div>
+
+          {/* ── Authorization (insurance orders only) ────── */}
+          {order.patient?.insuranceType === 'Insurance' && (
+            <div className="border-t border-slate-100 pt-4 space-y-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Authorization</p>
+              <div className="grid grid-cols-2 gap-3 items-end">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                    Auth Number <span className="text-slate-400 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    name="authNumber"
+                    value={formData.authNumber}
+                    onChange={handleChange}
+                    placeholder="Authorization #"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+                <label className="flex items-center gap-2.5 cursor-pointer pb-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.insuranceVerified}
+                    onChange={e => setFormData(cur => ({ ...cur, insuranceVerified: e.target.checked }))}
+                    className="w-4 h-4 accent-blue-600"
+                  />
+                  <span className="text-sm font-medium text-slate-700">Insurance Verified</span>
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* ── Actions ───────────────────────────────────── */}
           <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">

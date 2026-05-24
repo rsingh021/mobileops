@@ -176,6 +176,22 @@ export default function OrderDetail() {
             <BillingBadge status={order.billingStatus} />
           </div>
 
+          {order.patient?.insuranceType === 'Insurance' && (
+            <>
+              <Field label="Auth Number" value={order.authNumber ?? '—'} />
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Insurance Verified</p>
+                <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  order.insuranceVerified
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {order.insuranceVerified ? 'Verified' : 'Pending'}
+                </span>
+              </div>
+            </>
+          )}
+
         </div>
       </section>
 

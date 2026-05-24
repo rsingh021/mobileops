@@ -3,11 +3,16 @@ import { supabase } from '../lib/supabase'
 
 function toJS(row) {
   return {
-    id:        row.id,
-    firstName: row.first_name,
-    lastName:  row.last_name,
-    dob:       row.date_of_birth,
-    phone:     row.phone,
+    id:            row.id,
+    firstName:     row.first_name,
+    lastName:      row.last_name,
+    dob:           row.date_of_birth,
+    phone:         row.phone,
+    insuranceType: row.insurance_type ?? 'Self-Pay',
+    payerName:     row.payer_name     ?? null,
+    memberId:      row.member_id      ?? null,
+    groupNumber:   row.group_number   ?? null,
+    policyHolder:  row.policy_holder  ?? null,
   }
 }
 
@@ -73,15 +78,19 @@ export function PatientsProvider({ children }) {
     }
   }, [])
 
-  // addPatient — inserts a new patient and appends to local state
   async function addPatient(newPatient) {
     const { data, error } = await supabase
       .from('patients')
       .insert({
         first_name:    newPatient.firstName,
         last_name:     newPatient.lastName,
-        date_of_birth: newPatient.dob || null,
+        date_of_birth: newPatient.dob   || null,
         phone:         newPatient.phone || null,
+        insurance_type: newPatient.insuranceType ?? 'Self-Pay',
+        payer_name:    newPatient.payerName    || null,
+        member_id:     newPatient.memberId     || null,
+        group_number:  newPatient.groupNumber  || null,
+        policy_holder: newPatient.policyHolder || null,
       })
       .select()
       .single()
@@ -98,10 +107,15 @@ export function PatientsProvider({ children }) {
     const { data, error } = await supabase
       .from('patients')
       .update({
-        ...(changes.firstName !== undefined && { first_name:    changes.firstName }),
-        ...(changes.lastName  !== undefined && { last_name:     changes.lastName }),
-        ...(changes.dob       !== undefined && { date_of_birth: changes.dob }),
-        ...(changes.phone     !== undefined && { phone:         changes.phone }),
+        ...(changes.firstName     !== undefined && { first_name:     changes.firstName }),
+        ...(changes.lastName      !== undefined && { last_name:      changes.lastName }),
+        ...(changes.dob           !== undefined && { date_of_birth:  changes.dob }),
+        ...(changes.phone         !== undefined && { phone:          changes.phone }),
+        ...(changes.insuranceType !== undefined && { insurance_type: changes.insuranceType }),
+        ...(changes.payerName     !== undefined && { payer_name:     changes.payerName }),
+        ...(changes.memberId      !== undefined && { member_id:      changes.memberId }),
+        ...(changes.groupNumber   !== undefined && { group_number:   changes.groupNumber }),
+        ...(changes.policyHolder  !== undefined && { policy_holder:  changes.policyHolder }),
       })
       .eq('id', id)
       .select('*')

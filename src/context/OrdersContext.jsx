@@ -5,27 +5,32 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
+const PATIENT_SELECT = 'id, first_name, last_name, date_of_birth, phone, insurance_type, payer_name'
+
 // Converts a Supabase row (snake_case + nested patients object) → JS object (camelCase)
 function toJS(row) {
   return {
     id:              row.id,
     facility:        row.facility,
     examType:        row.exam_type,
-    patientInitials: row.patient_initials, // fallback for old records with no patient_id
+    patientInitials: row.patient_initials,
     patientId:       row.patient_id,
-    // patients is the joined row from the patients table (null if no patient linked yet)
     patient: row.patients ? {
-      id:        row.patients.id,
-      firstName: row.patients.first_name,
-      lastName:  row.patients.last_name,
-      dob:       row.patients.date_of_birth,
-      phone:     row.patients.phone,
+      id:            row.patients.id,
+      firstName:     row.patients.first_name,
+      lastName:      row.patients.last_name,
+      dob:           row.patients.date_of_birth,
+      phone:         row.patients.phone,
+      insuranceType: row.patients.insurance_type ?? 'Self-Pay',
+      payerName:     row.patients.payer_name     ?? null,
     } : null,
     status:             row.status,
     billingStatus:      row.billing_status,
     clinicalIndication: row.clinical_indication ?? null,
     date:               row.date,
     time:               row.time ?? null,
+    authNumber:         row.auth_number         ?? null,
+    insuranceVerified:  row.insurance_verified  ?? false,
     updatedAt:          row.updated_at,
     createdAt:          row.created_at,
   }
@@ -34,15 +39,17 @@ function toJS(row) {
 // Converts a JS order object → Supabase insert/update shape (snake_case)
 function toDB(order) {
   return {
-    facility:         order.facility,
-    exam_type:        order.examType,
-    patient_initials: order.patientInitials ?? null,
-    patient_id:       order.patientId ?? null,
-    status:              order.status,
-    billing_status:      order.billingStatus,
+    facility:           order.facility,
+    exam_type:          order.examType,
+    patient_initials:   order.patientInitials ?? null,
+    patient_id:         order.patientId       ?? null,
+    status:             order.status,
+    billing_status:     order.billingStatus,
     clinical_indication: order.clinicalIndication ?? null,
-    date:                order.date,
-    time:                order.time ?? null,
+    date:               order.date,
+    time:               order.time             ?? null,
+    auth_number:        order.authNumber        ?? null,
+    insurance_verified: order.insuranceVerified ?? false,
   }
 }
 
@@ -60,7 +67,7 @@ export function OrdersProvider({ children }) {
       try {
         const { data, error } = await supabase
           .from('orders')
-          .select('*, patients(id, first_name, last_name, date_of_birth, phone)')
+          .select(`*, patients(${PATIENT_SELECT})`)
           .is('archived_at', null)
           .order('created_at', { ascending: false })
 
@@ -79,7 +86,7 @@ export function OrdersProvider({ children }) {
     async function refetchRow(id) {
       const { data } = await supabase
         .from('orders')
-        .select('*, patients(id, first_name, last_name, date_of_birth, phone)')
+        .select(`*, patients(${PATIENT_SELECT})`)
         .eq('id', id)
         .single()
       return data
@@ -122,7 +129,7 @@ export function OrdersProvider({ children }) {
     const { data, error } = await supabase
       .from('orders')
       .insert(toDB(newOrder))
-      .select('*, patients(id, first_name, last_name, date_of_birth, phone)')
+      .select(`*, patients(${PATIENT_SELECT})`)
       .single()
 
     if (error) throw error
@@ -133,22 +140,24 @@ export function OrdersProvider({ children }) {
   // updateOrder — patches specific fields on an existing order
   async function updateOrder(id, changes) {
     const dbChanges = {
-      ...(changes.facility        !== undefined && { facility:         changes.facility }),
-      ...(changes.examType        !== undefined && { exam_type:        changes.examType }),
-      ...(changes.patientInitials !== undefined && { patient_initials: changes.patientInitials }),
-      ...(changes.patientId       !== undefined && { patient_id:       changes.patientId }),
-      ...(changes.status          !== undefined && { status:           changes.status }),
+      ...(changes.facility           !== undefined && { facility:            changes.facility }),
+      ...(changes.examType           !== undefined && { exam_type:           changes.examType }),
+      ...(changes.patientInitials    !== undefined && { patient_initials:    changes.patientInitials }),
+      ...(changes.patientId          !== undefined && { patient_id:          changes.patientId }),
+      ...(changes.status             !== undefined && { status:              changes.status }),
       ...(changes.billingStatus      !== undefined && { billing_status:      changes.billingStatus }),
       ...(changes.clinicalIndication !== undefined && { clinical_indication: changes.clinicalIndication }),
       ...(changes.date               !== undefined && { date:                changes.date }),
-      ...(changes.time            !== undefined && { time:             changes.time }),
+      ...(changes.time               !== undefined && { time:               changes.time }),
+      ...(changes.authNumber         !== undefined && { auth_number:         changes.authNumber }),
+      ...(changes.insuranceVerified  !== undefined && { insurance_verified:  changes.insuranceVerified }),
     }
 
     const { data, error } = await supabase
       .from('orders')
       .update(dbChanges)
       .eq('id', id)
-      .select('*, patients(id, first_name, last_name, date_of_birth, phone)')
+      .select(`*, patients(${PATIENT_SELECT})`)
       .single()
 
     if (error) throw error
@@ -169,7 +178,7 @@ export function OrdersProvider({ children }) {
       .from('orders')
       .update({ archived_at: null })
       .eq('id', id)
-      .select('*, patients(id, first_name, last_name, date_of_birth, phone)')
+      .select(`*, patients(${PATIENT_SELECT})`)
       .single()
     if (error) throw error
     setOrders(current => [toJS(data), ...current])
