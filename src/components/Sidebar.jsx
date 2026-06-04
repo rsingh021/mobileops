@@ -62,7 +62,7 @@ export default function Sidebar() {
 
       {/* ── User / sign out ───────────────────────────────────── */}
       <div className="px-4 py-4 border-t border-slate-700/60">
-        <p className="text-slate-300 text-xs font-medium truncate">{user?.email}</p>
+        <p className="text-slate-300 text-xs font-medium truncate">{user?.email?.split('@')[0]}</p>
         <button
           onClick={signOut}
           className="mt-2 text-xs text-slate-500 hover:text-slate-300 transition-colors"
