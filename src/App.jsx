@@ -21,7 +21,6 @@ import Dashboard      from './pages/Dashboard'
 import Facilities     from './pages/Facilities'
 import Orders         from './pages/Orders'
 import Schedule       from './pages/Schedule'
-import Reports        from './pages/Reports'
 import Billing        from './pages/Billing'
 import NewOrder       from './pages/NewOrder'
 import OrderDetail    from './pages/OrderDetail'
@@ -62,7 +61,6 @@ function AppShell() {
               <Route path="/orders/:id"     element={<OrderDetail />}    />
               <Route path="/upcoming"       element={<Upcoming />}       />
               <Route path="/schedule"       element={<Schedule />}       />
-              <Route path="/reports"        element={<Reports />}        />
               <Route path="/billing"        element={<Billing />}        />
             </Routes>
           </main>

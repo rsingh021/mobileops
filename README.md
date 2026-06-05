@@ -24,27 +24,27 @@ A production web application built for a mobile diagnostic imaging startup. Mobi
 ### Dashboard
 At-a-glance view of active orders, scheduling gaps, overdue reports, and this week's visits.
 
-![Dashboard](screenshots/Dashboard.png)
+<img src="screenshots/Dashboard.png" width="800" alt="Dashboard" />
 
 ### Orders
 Full order list with search, status/billing/facility/exam type filters, and date range presets. Inline status updates without opening the record.
 
-![Orders](screenshots/Orders.png)
+<img src="screenshots/Orders.png" width="800" alt="Orders" />
 
 ### Order Detail
 Complete order view with patient info, exam details, clinical indication, insurance and authorization tracking, notes, and full status history.
 
-![Order Detail](screenshots/OrderDetails.png)
+<img src="screenshots/OrderDetails.png" width="800" alt="Order Detail" />
 
 ### Patient Detail
 Patient profile with insurance information, order statistics, and full order history.
 
-![Patient Detail](screenshots/PatientDetails.png)
+<img src="screenshots/PatientDetails.png" width="800" alt="Patient Detail" />
 
 ### Create Order
 Two-step order creation — patient search or creation, then order details with clinical indication suggestions per exam type.
 
-![Create Order](screenshots/CreateOrder.png)
+<img src="screenshots/CreateOrder.png" width="800" alt="Create Order" />
 
 ---
 
