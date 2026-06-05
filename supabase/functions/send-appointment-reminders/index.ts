@@ -225,11 +225,15 @@ Deno.serve(async () => {
         subject: item.subject,
         html:    item.html,
       })
-      await supabase
+      sent++
+      const { error: insertError } = await supabase
         .from('notifications')
         .insert({ order_id: item.orderId, type: item.type, for_date: item.forDate })
-      sent++
-      console.log(`Sent ${item.type} for order ${item.orderId}`)
+      if (insertError) {
+        console.error(`Failed to log notification for order ${item.orderId}:`, JSON.stringify(insertError))
+      } else {
+        console.log(`Sent and logged ${item.type} for order ${item.orderId}`)
+      }
     } catch (err) {
       console.error(`Failed to send for order ${item.orderId}:`, err)
     }
