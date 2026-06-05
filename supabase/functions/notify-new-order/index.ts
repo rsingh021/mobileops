@@ -1,15 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import nodemailer       from 'npm:nodemailer'
 
-const GMAIL_ADDRESS   = Deno.env.get('GMAIL_ADDRESS')!
-const GMAIL_APP_PW    = Deno.env.get('GMAIL_APP_PASSWORD')!
-const TECH_EMAILS     = (Deno.env.get('TECH_EMAIL') ?? '').split(',').map(e => e.trim()).filter(Boolean)
+const GMAIL_ADDRESS = Deno.env.get('GMAIL_ADDRESS')!
+const GMAIL_APP_PW  = Deno.env.get('GMAIL_APP_PASSWORD')!
+const TECH_EMAILS   = (Deno.env.get('TECH_EMAIL') ?? '').split(',').map(e => e.trim()).filter(Boolean)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function toYMD(dt: Date): string {
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
-}
 
 function formatTime(t: string): string {
   const [h, m] = t.split(':').map(Number)
@@ -27,13 +23,16 @@ function formatDateLong(ymd: string): string {
 
 // ── Email builder ─────────────────────────────────────────────────────────────
 
-function buildEmail(order: any, patient: any, dateStr: string, timeStr: string, dayLabel: string): string {
+function buildEmail(order: any, patient: any): string {
   const patientName = patient
     ? `${patient.first_name} ${patient.last_name}`
     : order.patient_initials ?? 'Unknown'
 
   const dob   = patient?.date_of_birth ?? null
   const phone = patient?.phone         ?? null
+
+  const timeStr = order.time ? formatTime(order.time) : 'Time TBD'
+  const dateStr = order.date ? formatDateLong(order.date) : 'Date TBD'
 
   const isInsurance = patient?.insurance_type === 'Insurance'
   const insuranceRows = isInsurance ? `
@@ -45,16 +44,6 @@ function buildEmail(order: any, patient: any, dateStr: string, timeStr: string, 
       <td style="padding:4px 0">
         <span style="font-size:11px;color:#94a3b8;display:block">Member ID</span>
         <span style="font-size:14px;color:#1e293b;font-weight:500">${patient.member_id ?? '—'}</span>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding:4px 0">
-        <span style="font-size:11px;color:#94a3b8;display:block">Auth #</span>
-        <span style="font-size:14px;color:#1e293b;font-weight:500">${order.auth_number ?? '—'}</span>
-      </td>
-      <td style="padding:4px 0">
-        <span style="font-size:11px;color:#94a3b8;display:block">Verified</span>
-        <span style="font-size:14px;color:#1e293b;font-weight:500">${order.insurance_verified ? '✓ Yes' : 'Pending'}</span>
       </td>
     </tr>` : `
     <tr>
@@ -82,7 +71,7 @@ function buildEmail(order: any, patient: any, dateStr: string, timeStr: string, 
 
     <div style="background:#1e293b;padding:20px 24px">
       <p style="margin:0;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;font-weight:600">
-        Appointment ${dayLabel}
+        New Order Created
       </p>
       <h1 style="margin:6px 0 0;font-size:22px;color:white;font-weight:700">${patientName}</h1>
       <p style="margin:6px 0 0;font-size:14px;color:#94a3b8">${dateStr} &nbsp;·&nbsp; ${timeStr}</p>
@@ -116,9 +105,13 @@ function buildEmail(order: any, patient: any, dateStr: string, timeStr: string, 
         </tr>
         ${indicationRow}
         <tr>
-          <td colspan="2" style="padding:4px 0">
+          <td style="padding:4px 0;width:50%">
             <span style="font-size:11px;color:#94a3b8;display:block">Facility</span>
             <span style="font-size:14px;color:#1e293b;font-weight:500">${order.facility}</span>
+          </td>
+          <td style="padding:4px 0">
+            <span style="font-size:11px;color:#94a3b8;display:block">Status</span>
+            <span style="font-size:14px;color:#1e293b;font-weight:500">${order.status}</span>
           </td>
         </tr>
       </table>
@@ -143,97 +136,55 @@ function buildEmail(order: any, patient: any, dateStr: string, timeStr: string, 
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
-Deno.serve(async () => {
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  )
+Deno.serve(async (req) => {
+  try {
+    const { record } = await req.json()
+    const orderId = record?.id
 
-  const now      = new Date()
-  const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1)
-  const in2days  = new Date(now); in2days.setDate(now.getDate() + 2)
+    if (!orderId) {
+      return new Response(JSON.stringify({ error: 'No order ID' }), { status: 400 })
+    }
 
-  const batches = [
-    { date: toYMD(in2days),  type: 'reminder_2day', label: 'in 2 Days' },
-    { date: toYMD(tomorrow), type: 'reminder_1day',  label: 'Tomorrow'  },
-  ]
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
 
-
-  // Collect all emails to send before opening the SMTP connection
-  const queue: { orderId: string; type: string; forDate: string; subject: string; html: string }[] = []
-
-  for (const { date, type, label } of batches) {
-    const { data: orders, error } = await supabase
+    // Fetch full order with patient info
+    const { data: order, error } = await supabase
       .from('orders')
       .select('*, patients(first_name, last_name, date_of_birth, phone, insurance_type, payer_name, member_id)')
-      .eq('date', date)
-      .eq('status', 'Scheduled')
-      .is('archived_at', null)
+      .eq('id', orderId)
+      .single()
 
-    if (error) { console.error('fetch error:', error); continue }
-    if (!orders?.length) continue
-
-    const { data: existing } = await supabase
-      .from('notifications')
-      .select('order_id')
-      .in('order_id', orders.map((o: any) => o.id))
-      .eq('type', type)
-      .eq('for_date', date)
-
-    const notifiedIds = new Set((existing ?? []).map((n: any) => n.order_id))
-
-    for (const order of orders) {
-      if (notifiedIds.has(order.id)) continue
-
-      const patient = order.patients ?? null
-      const timeStr = order.time ? formatTime(order.time) : 'Time TBD'
-      const dateStr = formatDateLong(date)
-      const name    = patient
-        ? `${patient.first_name} ${patient.last_name}`
-        : order.patient_initials ?? 'Patient'
-
-      queue.push({
-        orderId: order.id,
-        type,
-        forDate: date,
-        subject: `Appointment ${label} — ${name} · ${timeStr}`,
-        html:    buildEmail(order, patient, dateStr, timeStr, label),
-      })
+    if (error || !order) {
+      console.error('Failed to fetch order:', error)
+      return new Response(JSON.stringify({ error: 'Order not found' }), { status: 404 })
     }
+
+    const patient     = order.patients ?? null
+    const patientName = patient
+      ? `${patient.first_name} ${patient.last_name}`
+      : order.patient_initials ?? 'Patient'
+    const timeStr = order.time ? formatTime(order.time) : 'Time TBD'
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: GMAIL_ADDRESS, pass: GMAIL_APP_PW },
+    })
+
+    await transporter.sendMail({
+      from:    GMAIL_ADDRESS,
+      to:      TECH_EMAILS.join(','),
+      subject: `New Order — ${patientName} · ${order.exam_type}`,
+      html:    buildEmail(order, patient),
+    })
+
+    console.log(`New order notification sent for order ${orderId}`)
+    return new Response(JSON.stringify({ sent: true }), { headers: { 'Content-Type': 'application/json' } })
+
+  } catch (err) {
+    console.error('Unexpected error:', err)
+    return new Response(JSON.stringify({ error: String(err) }), { status: 500 })
   }
-
-  if (queue.length === 0) {
-    return new Response(JSON.stringify({ sent: 0 }), { headers: { 'Content-Type': 'application/json' } })
-  }
-
-  // Open one transporter and send all queued emails
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: GMAIL_ADDRESS,
-      pass: GMAIL_APP_PW,
-    },
-  })
-
-  let sent = 0
-
-  for (const item of queue) {
-    try {
-      await transporter.sendMail({
-        from:    GMAIL_ADDRESS,
-        to:      TECH_EMAILS.join(','),
-        subject: item.subject,
-        html:    item.html,
-      })
-      await supabase
-        .from('notifications')
-        .insert({ order_id: item.orderId, type: item.type, for_date: item.forDate })
-      sent++
-      console.log(`Sent ${item.type} for order ${item.orderId}`)
-    } catch (err) {
-      console.error(`Failed to send for order ${item.orderId}:`, err)
-    }
-  }
-
-  return new Response(JSON.stringify({ sent }), { headers: { 'Content-Type': 'application/json' } })
 })
