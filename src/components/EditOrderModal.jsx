@@ -12,7 +12,7 @@ import { useToast } from '../context/ToastContext'
 import { EXAM_TYPES } from '../data/exams'
 import IndicationInput from './IndicationInput'
 
-const statusOptions        = ['Requested', 'Scheduled', 'Completed', 'Report Sent', 'Billed']
+const statusOptions        = ['Scheduled', 'Completed', 'Report Sent', 'Billed']
 const billingStatusOptions = ['Not Started', 'Pending', 'Ready']
 
 export default function EditOrderModal({ order, onClose }) {

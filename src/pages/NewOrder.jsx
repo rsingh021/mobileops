@@ -9,9 +9,10 @@ import { useFacilities } from '../context/FacilitiesContext'
 import { useToast } from '../context/ToastContext'
 import { supabase } from '../lib/supabase'
 import { EXAM_TYPES } from '../data/exams'
+import { PAYERS } from '../data/payers'
 import IndicationInput from '../components/IndicationInput'
 
-const statusOptions  = ['Requested', 'Scheduled', 'Completed', 'Report Sent', 'Billed']
+const statusOptions  = ['Scheduled', 'Completed', 'Report Sent', 'Billed']
 const billingOptions = ['Not Started', 'Pending', 'Ready']
 
 export default function NewOrder() {
@@ -34,8 +35,13 @@ export default function NewOrder() {
   const [searched, setSearched]           = useState(false)
   const [searching, setSearching]         = useState(false)
 
-  const [newPatientDob,   setNewPatientDob]   = useState('')
-  const [newPatientPhone, setNewPatientPhone] = useState('')
+  const [newPatientDob,           setNewPatientDob]           = useState('')
+  const [newPatientPhone,         setNewPatientPhone]         = useState('')
+  const [newPatientInsuranceType, setNewPatientInsuranceType] = useState('Self-Pay')
+  const [newPatientPayerName,     setNewPatientPayerName]     = useState('')
+  const [newPatientMemberId,      setNewPatientMemberId]      = useState('')
+  const [newPatientGroupNumber,   setNewPatientGroupNumber]   = useState('')
+  const [newPatientPolicyHolder,  setNewPatientPolicyHolder]  = useState('')
   const [creatingPatient, setCreatingPatient] = useState(false)
   const [patientError,    setPatientError]    = useState(null)
 
@@ -49,7 +55,7 @@ export default function NewOrder() {
   const [orderData, setOrderData] = useState({
     facility:           prefill.facilityName ?? '',
     examType:           EXAM_TYPES[0],
-    status:             'Requested',
+    status:             'Scheduled',
     billingStatus:      'Not Started',
     clinicalIndication: '',
     date:               todayYMD,
@@ -111,13 +117,20 @@ export default function NewOrder() {
     setCreatingPatient(true)
     setPatientError(null)
 
+    const isNewInsurance = newPatientInsuranceType === 'Insurance'
+
     const { data, error } = await supabase
       .from('patients')
       .insert({
-        first_name:    searchFirst.trim(),
-        last_name:     searchLast.trim(),
-        date_of_birth: newPatientDob  || null,
-        phone:         newPatientPhone || null,
+        first_name:     searchFirst.trim(),
+        last_name:      searchLast.trim(),
+        date_of_birth:  newPatientDob   || null,
+        phone:          newPatientPhone || null,
+        insurance_type: newPatientInsuranceType,
+        payer_name:     isNewInsurance ? newPatientPayerName.trim()    || null : null,
+        member_id:      isNewInsurance ? newPatientMemberId.trim()     || null : null,
+        group_number:   isNewInsurance ? newPatientGroupNumber.trim()  || null : null,
+        policy_holder:  isNewInsurance ? newPatientPolicyHolder.trim() || null : null,
       })
       .select()
       .single()
@@ -310,6 +323,78 @@ export default function NewOrder() {
                   />
                 </div>
               </div>
+              {/* Insurance */}
+              <div className="border-t border-slate-100 pt-3 space-y-3">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Insurance</p>
+                <div className="flex gap-4">
+                  {['Self-Pay', 'Insurance'].map(type => (
+                    <label key={type} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        value={type}
+                        checked={newPatientInsuranceType === type}
+                        onChange={e => setNewPatientInsuranceType(e.target.value)}
+                        className="accent-blue-600"
+                      />
+                      <span className="text-sm text-slate-700">{type}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {newPatientInsuranceType === 'Insurance' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                        Payer / Insurance Company <span className="text-slate-400 font-normal">(optional)</span>
+                      </label>
+                      <input
+                        list="new-order-payers-list"
+                        value={newPatientPayerName}
+                        onChange={e => setNewPatientPayerName(e.target.value)}
+                        placeholder="Select or type..."
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                      <datalist id="new-order-payers-list">
+                        {PAYERS.map(p => <option key={p} value={p} />)}
+                      </datalist>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                          Member ID <span className="text-slate-400 font-normal">(optional)</span>
+                        </label>
+                        <input
+                          value={newPatientMemberId}
+                          onChange={e => setNewPatientMemberId(e.target.value)}
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                          Group Number <span className="text-slate-400 font-normal">(optional)</span>
+                        </label>
+                        <input
+                          value={newPatientGroupNumber}
+                          onChange={e => setNewPatientGroupNumber(e.target.value)}
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                        Policy Holder Name <span className="text-slate-400 font-normal">(if different from patient)</span>
+                      </label>
+                      <input
+                        value={newPatientPolicyHolder}
+                        onChange={e => setNewPatientPolicyHolder(e.target.value)}
+                        placeholder="Leave blank if patient is the policy holder"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <button
                 onClick={handleCreatePatient}
                 disabled={creatingPatient}

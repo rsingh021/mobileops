@@ -39,7 +39,6 @@ function buildCalendarGrid(year, month) {
 }
 
 const STATUS_COLORS = {
-  Requested:    'bg-amber-100 text-amber-800',
   Scheduled:    'bg-blue-100 text-blue-800',
   Completed:    'bg-violet-100 text-violet-800',
   'Report Sent':'bg-green-100 text-green-800',
@@ -91,11 +90,7 @@ export default function Schedule() {
   // All orders by date — used for the selected-day detail panel
   const ordersByDate = useMemo(() => buildDateMap(orders), [orders])
 
-  // Calendar pills exclude Requested (no confirmed time, clutter the grid)
-  const calendarByDate = useMemo(
-    () => buildDateMap(orders.filter(o => o.status !== 'Requested')),
-    [orders]
-  )
+  const calendarByDate = useMemo(() => buildDateMap(orders), [orders])
 
   const cells          = useMemo(() => buildCalendarGrid(viewYear, viewMonth), [viewYear, viewMonth])
   const todayStr       = toYMD(today)

@@ -4,11 +4,10 @@
 import { useState } from 'react'
 import { useOrders } from '../context/OrdersContext'
 
-const statusOptions = ['Requested', 'Scheduled', 'Completed', 'Report Sent', 'Billed']
+const statusOptions = ['Scheduled', 'Completed', 'Report Sent', 'Billed']
 
 // Same color map as StatusBadge — keeps the pill color consistent with the selected status
 const colors = {
-  Requested:    'bg-amber-100 text-amber-800',
   Scheduled:    'bg-blue-100 text-blue-800',
   Completed:    'bg-violet-100 text-violet-800',
   'Report Sent':'bg-green-100 text-green-800',

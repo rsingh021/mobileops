@@ -92,11 +92,6 @@ export default function Dashboard() {
   // ── Derived data ───────────────────────────────────────────────────────────
 
 
-  // Orders needing attention: Requested (not yet scheduled)
-  const needsAttention = orders
-    .filter(o => o.status === 'Requested')
-    .sort((a, b) => new Date(a.date ?? 0) - new Date(b.date ?? 0))
-
   // Reports overdue: exam is Completed but no report sent, and date is in the past
   const reportsOverdue = orders
     .filter(o => o.status === 'Completed' && o.date && o.date < todayStr)
@@ -119,17 +114,11 @@ export default function Dashboard() {
     <div className="space-y-6">
 
       {/* ── Stat cards ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <StatCard
           label="Active Orders"
           value={activeOrders}
           note="Not yet billed"
-        />
-        <StatCard
-          label="Needs Scheduling"
-          value={needsAttention.length}
-          note="Requested, not scheduled"
-          accent={needsAttention.length > 0 ? 'amber' : null}
         />
         <StatCard
           label="Reports Overdue"
@@ -144,47 +133,6 @@ export default function Dashboard() {
           accent={thisWeek.length > 0 ? 'blue' : null}
         />
       </div>
-
-      {/* ── Orders needing attention ───────────────────────────────────────── */}
-      <Section
-        title="Orders Needing Attention"
-        count={needsAttention.length}
-        emptyMessage="No unscheduled orders."
-        accentEmpty
-      >
-        {needsAttention.length > 0 && (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-100">
-                <ColHead>Patient</ColHead>
-                <ColHead>Facility</ColHead>
-                <ColHead>Exam Type</ColHead>
-                <ColHead>Requested Date</ColHead>
-                <ColHead>Billing</ColHead>
-              </tr>
-            </thead>
-            <tbody>
-              {needsAttention.map(order => (
-                <tr
-                  key={order.id}
-                  onClick={() => navigate(`/orders/${order.id}`)}
-                  className="border-b border-slate-50 hover:bg-amber-50 transition-colors cursor-pointer"
-                >
-                  <td className="px-5 py-3.5 text-sm font-medium text-slate-800">
-                    {order.patient
-                      ? `${order.patient.firstName} ${order.patient.lastName}`
-                      : order.patientInitials ?? '—'}
-                  </td>
-                  <td className="px-5 py-3.5 text-sm text-slate-600">{order.facility}</td>
-                  <td className="px-5 py-3.5 text-sm text-slate-600">{order.examType}</td>
-                  <td className="px-5 py-3.5 text-sm text-slate-400">{order.date ?? '—'}</td>
-                  <td className="px-5 py-3.5 text-sm text-slate-600">{order.billingStatus}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Section>
 
       {/* ── Reports overdue ───────────────────────────────────────────────── */}
       <Section

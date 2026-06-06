@@ -6,7 +6,7 @@ import StatusSelect from '../components/StatusSelect'
 import EditOrderModal from '../components/EditOrderModal'
 import { EXAM_TYPES } from '../data/exams'
 
-const statusOptions  = ['All', 'Requested', 'Scheduled', 'Completed', 'Report Sent', 'Billed']
+const statusOptions  = ['All', 'Scheduled', 'Completed', 'Report Sent', 'Billed']
 const billingOptions = ['All', 'Not Started', 'Pending', 'Ready']
 
 const DATE_PRESETS = [

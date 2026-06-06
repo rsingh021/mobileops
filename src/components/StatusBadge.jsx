@@ -5,7 +5,6 @@
 // Maps each status string to a pair of Tailwind color classes (background + text).
 // This is called a "lookup object" — faster and cleaner than a chain of if/else statements.
 const colors = {
-  Requested:    'bg-amber-100 text-amber-800',   // Yellow  — order placed, not yet scheduled
   Scheduled:    'bg-blue-100 text-blue-800',     // Blue    — on the calendar
   Completed:    'bg-violet-100 text-violet-800', // Purple  — exam done, report not sent yet
   'Report Sent':'bg-green-100 text-green-800',   // Green   — report delivered to facility

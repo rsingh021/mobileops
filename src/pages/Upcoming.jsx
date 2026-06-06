@@ -31,7 +31,6 @@ function formatDateHeader(ymd) {
 const STATUS_FILTERS = [
   ['all',       'All statuses'],
   ['scheduled', 'Scheduled'],
-  ['requested', 'Requested'],
 ]
 
 export default function Upcoming() {
@@ -46,7 +45,6 @@ export default function Upcoming() {
       .filter(o => {
         if (!o.date || o.date < todayYMD) return false
         if (statusFilter === 'scheduled' && o.status !== 'Scheduled') return false
-        if (statusFilter === 'requested' && o.status !== 'Requested') return false
         return true
       })
       .sort((a, b) => {
