@@ -19,7 +19,6 @@ export default function Archive() {
         <p className="mt-1 text-sm text-slate-500">Archived records are hidden from active views. Restore them at any time.</p>
       </div>
 
-      {/* ── Tabs ──────────────────────────────────────────────────────────── */}
       <div className="flex gap-2">
         {TABS.map(t => (
           <button
@@ -43,8 +42,6 @@ export default function Archive() {
     </div>
   )
 }
-
-// ── Archived Orders ────────────────────────────────────────────────────────────
 
 function ArchivedOrders() {
   const navigate = useNavigate()
@@ -106,8 +103,6 @@ function ArchivedOrders() {
   )
 }
 
-// ── Archived Patients ──────────────────────────────────────────────────────────
-
 function ArchivedPatients() {
   const { restorePatient } = usePatients()
   const { toast } = useToast()
@@ -163,8 +158,6 @@ function ArchivedPatients() {
   )
 }
 
-// ── Archived Facilities ────────────────────────────────────────────────────────
-
 function ArchivedFacilities() {
   const { restoreFacility } = useFacilities()
   const { toast } = useToast()
@@ -217,8 +210,6 @@ function ArchivedFacilities() {
     </ArchiveTable>
   )
 }
-
-// ── Shared table shell ────────────────────────────────────────────────────────
 
 function ArchiveTable({ loading, empty, headers, children }) {
   if (loading) return (

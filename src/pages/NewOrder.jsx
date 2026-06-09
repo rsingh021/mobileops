@@ -1,7 +1,3 @@
-// NewOrder.jsx — Two-step order creation flow.
-// Step 1: Find or create the patient.
-// Step 2: Fill in order details, then submit linked to the patient.
-
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
@@ -24,11 +20,8 @@ export default function NewOrder() {
   const { facilities } = useFacilities()
   const { toast }      = useToast()
 
-  // ── Step tracking ─────────────────────────────────────────────────────────
-  // If a patient was passed in via navigation state, skip straight to step 2
   const [step, setStep] = useState(prefill.patient ? 2 : 1)
 
-  // ── Step 1 state ──────────────────────────────────────────────────────────
   const [searchFirst, setSearchFirst] = useState('')
   const [searchLast,  setSearchLast]  = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -45,10 +38,8 @@ export default function NewOrder() {
   const [creatingPatient, setCreatingPatient] = useState(false)
   const [patientError,    setPatientError]    = useState(null)
 
-  // Pre-filled from PatientDetail navigation, or null until selected in step 1
   const [selectedPatient, setSelectedPatient] = useState(prefill.patient ?? null)
 
-  // ── Step 2 state ──────────────────────────────────────────────────────────
   const today = new Date()
   const todayYMD = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
 
@@ -66,14 +57,11 @@ export default function NewOrder() {
   const [submitting,  setSubmitting]  = useState(false)
   const [submitError, setSubmitError] = useState(null)
 
-  // Default facility once loaded — only if not pre-filled
   useEffect(() => {
     if (facilities.length > 0 && !orderData.facility) {
       setOrderData(cur => ({ ...cur, facility: facilities[0].name }))
     }
   }, [facilities])
-
-  // ── Step 1 helpers ────────────────────────────────────────────────────────
 
   async function handleSearch(e) {
     e.preventDefault()
@@ -161,8 +149,6 @@ export default function NewOrder() {
     selectPatient(data)
   }
 
-  // ── Step 2 helpers ────────────────────────────────────────────────────────
-
   function handleOrderChange(e) {
     const { name, value } = e.target
     setOrderData(cur => ({ ...cur, [name]: value }))
@@ -190,8 +176,6 @@ export default function NewOrder() {
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
     <div className="mx-auto max-w-2xl space-y-5">
 
@@ -200,7 +184,6 @@ export default function NewOrder() {
         <p className="mt-1 text-sm text-slate-500">Add a new imaging order to the workflow.</p>
       </div>
 
-      {/* ── Step indicator ────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
         {[1, 2].map(n => (
           <div key={n} className="flex items-center gap-2">
@@ -221,13 +204,11 @@ export default function NewOrder() {
         ))}
       </div>
 
-      {/* ── STEP 1 — Patient search / create ──────────────────────────────── */}
       {step === 1 && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
 
           <h2 className="font-semibold text-slate-800">Find or Create Patient</h2>
 
-          {/* Search form */}
           <form onSubmit={handleSearch} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -265,7 +246,6 @@ export default function NewOrder() {
             </div>
           )}
 
-          {/* Search results */}
           {searched && searchResults.length > 0 && (
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-600">
@@ -291,14 +271,12 @@ export default function NewOrder() {
             </div>
           )}
 
-          {/* No results — offer to create */}
           {searched && searchResults.length === 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               No patients found for "{searchFirst} {searchLast}". Fill in the details below to create a new patient record.
             </div>
           )}
 
-          {/* Create new patient — shown after a search is run */}
           {searched && (
             <div className="space-y-3 border-t border-slate-100 pt-4">
               <p className="text-sm font-medium text-slate-700">Create new patient: <span className="text-blue-700">{searchFirst} {searchLast}</span></p>
@@ -323,7 +301,6 @@ export default function NewOrder() {
                   />
                 </div>
               </div>
-              {/* Insurance */}
               <div className="border-t border-slate-100 pt-3 space-y-3">
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Insurance</p>
                 <div className="flex gap-4">
@@ -416,11 +393,9 @@ export default function NewOrder() {
         </div>
       )}
 
-      {/* ── STEP 2 — Order Details ─────────────────────────────────────────── */}
       {step === 2 && selectedPatient && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
 
-          {/* Selected patient banner */}
           <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-blue-800">

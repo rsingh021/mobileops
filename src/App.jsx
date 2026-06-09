@@ -1,9 +1,3 @@
-// App.jsx — The root layout shell of the entire application.
-// Three responsibilities:
-//   1. Wrap everything in BrowserRouter so React Router can track the URL.
-//   2. Wrap everything in OrdersProvider so any page can read/write the orders list.
-//   3. Render the persistent layout (Sidebar + Header) around whichever page is active.
-
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
 import { AuthProvider }       from './context/AuthContext'
@@ -30,7 +24,6 @@ import PatientDetail  from './pages/PatientDetail'
 import Archive        from './pages/Archive'
 import Upcoming       from './pages/Upcoming'
 
-// Redirects to /login if not authenticated; shows nothing while session loads
 function RequireAuth({ children }) {
   const { user } = useAuth()
   if (user === undefined) return null // still checking — avoid flash
@@ -38,7 +31,6 @@ function RequireAuth({ children }) {
   return children
 }
 
-// The shell (sidebar + header + main) shown only to authenticated users
 function AppShell() {
   return (
     <FacilitiesProvider>

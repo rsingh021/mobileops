@@ -127,7 +127,6 @@ export default function AddPatientModal({ onClose }) {
               </div>
             </div>
 
-            {/* ── Insurance ─────────────────────────────────────────────────── */}
             <div className="border-t border-slate-100 pt-4 space-y-3">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Insurance</p>
 

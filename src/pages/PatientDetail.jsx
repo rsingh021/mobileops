@@ -56,7 +56,6 @@ export default function PatientDetail() {
 
       {editing && <EditPatientModal patient={patient} onClose={() => setEditing(false)} />}
 
-      {/* ── Top bar ───────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/patients')}
@@ -80,7 +79,6 @@ export default function PatientDetail() {
         </div>
       </div>
 
-      {/* ── Patient info card ─────────────────────────────────────────────── */}
       <section className="bg-white rounded-xl border border-slate-200 p-5">
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Patient</p>
         <h1 className="text-xl font-bold text-slate-800">
@@ -96,7 +94,6 @@ export default function PatientDetail() {
           />
         </div>
 
-        {/* ── Insurance ─────────────────────────────────────────────────── */}
         <div className="mt-4 pt-4 border-t border-slate-100">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Insurance</p>
           {patient.insuranceType === 'Self-Pay' ? (
@@ -116,14 +113,12 @@ export default function PatientDetail() {
         </div>
       </section>
 
-      {/* ── Stats ─────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-4">
         <StatCard label="Total Orders"  value={patientOrders.length} />
         <StatCard label="Active"        value={activeCount}    accent="blue" />
         <StatCard label="Completed"     value={completedCount} accent="green" />
       </div>
 
-      {/* ── Order history ─────────────────────────────────────────────────── */}
       <section className="bg-white rounded-xl border border-slate-200">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-semibold text-slate-800">Order History</h3>
@@ -166,7 +161,6 @@ export default function PatientDetail() {
         )}
       </section>
 
-      {/* ── Danger zone ───────────────────────────────────────────────────── */}
       <section className="rounded-xl border border-red-200 bg-red-50 p-5 flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-red-700">Archive Patient</p>

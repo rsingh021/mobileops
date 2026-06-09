@@ -1,6 +1,3 @@
-// OrderDetail.jsx — Full detail view for a single order ("/orders/:id").
-// Shows patient info, order fields, inline status change, notes, and status history.
-
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
@@ -25,14 +22,12 @@ export default function OrderDetail() {
 
   const [editing, setEditing] = useState(false)
 
-  // ── Notes ──────────────────────────────────────────────────────────────────
   const [notes,        setNotes]        = useState([])
   const [notesLoading, setNotesLoading] = useState(true)
   const [noteText,     setNoteText]     = useState('')
   const [savingNote,   setSavingNote]   = useState(false)
   const [noteError,    setNoteError]    = useState(null)
 
-  // ── Status history ─────────────────────────────────────────────────────────
   const [history,        setHistory]        = useState([])
   const [historyLoading, setHistoryLoading] = useState(true)
 
@@ -91,8 +86,6 @@ export default function OrderDetail() {
     setSavingNote(false)
   }
 
-  // ── Loading / not found states ─────────────────────────────────────────────
-
   if (ordersLoading) return (
     <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
       Loading order...
@@ -113,7 +106,6 @@ export default function OrderDetail() {
   return (
     <div className="mx-auto max-w-3xl space-y-5">
 
-      {/* ── Top bar ───────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/orders')}
@@ -129,12 +121,10 @@ export default function OrderDetail() {
         </button>
       </div>
 
-      {/* Edit modal */}
       {editing && (
         <EditOrderModal order={order} onClose={() => setEditing(false)} />
       )}
 
-      {/* ── Patient card ──────────────────────────────────────────────────── */}
       <section className="bg-white rounded-xl border border-slate-200 p-5 space-y-1">
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Patient</p>
         <p className="text-lg font-semibold text-slate-800">{patientName}</p>
@@ -146,7 +136,6 @@ export default function OrderDetail() {
         )}
       </section>
 
-      {/* ── Order details ─────────────────────────────────────────────────── */}
       <section className="bg-white rounded-xl border border-slate-200 p-5">
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Order Details</p>
         <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
@@ -195,11 +184,9 @@ export default function OrderDetail() {
         </div>
       </section>
 
-      {/* ── Notes ─────────────────────────────────────────────────────────── */}
       <section className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Notes</p>
 
-        {/* Add note form */}
         <form onSubmit={handleAddNote} className="flex gap-2">
           <input
             value={noteText}
@@ -238,7 +225,6 @@ export default function OrderDetail() {
         )}
       </section>
 
-      {/* ── Status history ────────────────────────────────────────────────── */}
       <section className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Status History</p>
 
@@ -262,7 +248,6 @@ export default function OrderDetail() {
         )}
       </section>
 
-      {/* ── Danger zone ───────────────────────────────────────────────────── */}
       <section className="rounded-xl border border-red-200 bg-red-50 p-5 flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-red-700">Archive Order</p>

@@ -74,7 +74,6 @@ export default function Upcoming() {
   return (
     <div className="space-y-5">
 
-      {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Upcoming Appointments</h1>
@@ -101,7 +100,6 @@ export default function Upcoming() {
         </div>
       </div>
 
-      {/* ── Content ───────────────────────────────────────────────────────── */}
       {groups.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-slate-200">
           <p className="text-slate-500 font-medium">No upcoming appointments</p>
@@ -116,7 +114,6 @@ export default function Upcoming() {
           {groups.map(([date, dayOrders]) => (
             <section key={date} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
 
-              {/* Date header */}
               <div className="px-5 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                 <p className="text-sm font-semibold text-slate-700">{formatDateHeader(date)}</p>
                 <p className="text-xs text-slate-400">
@@ -124,7 +121,6 @@ export default function Upcoming() {
                 </p>
               </div>
 
-              {/* Orders for this day */}
               <ul>
                 {dayOrders.map((order, i) => {
                   const patientName = order.patient
@@ -139,7 +135,6 @@ export default function Upcoming() {
                         i < dayOrders.length - 1 ? 'border-b border-slate-100' : ''
                       }`}
                     >
-                      {/* Time */}
                       <div className="w-20 flex-shrink-0">
                         {order.time ? (
                           <p className="text-sm font-semibold text-slate-800">{formatTime(order.time)}</p>
@@ -148,21 +143,17 @@ export default function Upcoming() {
                         )}
                       </div>
 
-                      {/* Patient + exam */}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-slate-800 truncate">{patientName}</p>
                         <p className="text-xs text-slate-400 truncate mt-0.5">{order.examType}</p>
                       </div>
 
-                      {/* Facility */}
                       <div className="w-48 flex-shrink-0 hidden md:block">
                         <p className="text-sm text-slate-600 truncate">{order.facility}</p>
                       </div>
 
-                      {/* Status */}
                       <StatusBadge status={order.status} />
 
-                      {/* Arrow */}
                       <span className="text-slate-300 text-sm flex-shrink-0">→</span>
                     </li>
                   )

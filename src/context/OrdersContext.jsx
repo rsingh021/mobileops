@@ -1,13 +1,8 @@
-// OrdersContext.jsx — Shared state for the orders list, backed by Supabase.
-// Each order is fetched with its linked patient so pages have full name/info available.
-// One patient → many orders. The join here just means "give me the one patient for this order."
-
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
 const PATIENT_SELECT = 'id, first_name, last_name, date_of_birth, phone, insurance_type, payer_name'
 
-// Converts a Supabase row (snake_case + nested patients object) → JS object (camelCase)
 function toJS(row) {
   return {
     id:              row.id,
@@ -36,7 +31,6 @@ function toJS(row) {
   }
 }
 
-// Converts a JS order object → Supabase insert/update shape (snake_case)
 function toDB(order) {
   return {
     facility:           order.facility,
@@ -124,7 +118,6 @@ export function OrdersProvider({ children }) {
     }
   }, [])
 
-  // addOrder — inserts a new order and returns it with the joined patient already attached
   async function addOrder(newOrder) {
     const { data, error } = await supabase
       .from('orders')
@@ -137,7 +130,6 @@ export function OrdersProvider({ children }) {
     return toJS(data)
   }
 
-  // updateOrder — patches specific fields on an existing order
   async function updateOrder(id, changes) {
     const dbChanges = {
       ...(changes.facility           !== undefined && { facility:            changes.facility }),

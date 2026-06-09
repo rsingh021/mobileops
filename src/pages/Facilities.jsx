@@ -1,7 +1,3 @@
-// Facilities.jsx — The facilities page ("/facilities").
-// Lists all partner facilities fetched live from Supabase.
-// activeOrders count is computed from the live orders list.
-
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFacilities } from '../context/FacilitiesContext'
@@ -28,8 +24,6 @@ export default function Facilities() {
     </div>
   )
 
-  // Count how many open orders exist for a given facility name
-  // "open" = anything that isn't fully billed/closed
   function activeOrderCount(facilityName) {
     return orders.filter(
       o => o.facility === facilityName && o.status !== 'Billed'
@@ -42,7 +36,6 @@ export default function Facilities() {
       {showAdd         && <AddFacilityModal  onClose={() => setShowAdd(false)} />}
       {editingFacility && <EditFacilityModal facility={editingFacility} onClose={() => setEditingFacility(null)} />}
 
-      {/* ── Facilities table ─────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-slate-200">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-semibold text-slate-800">Partner Facilities</h3>

@@ -1,9 +1,3 @@
-// FacilitiesContext.jsx — Shared state for the facilities list, backed by Supabase.
-// Same pattern as OrdersContext: fetch on load, expose an addFacility function.
-//
-// How to use from any page or component:
-//   const { facilities, loading, error } = useFacilities()
-
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
@@ -14,7 +8,6 @@ export function FacilitiesProvider({ children }) {
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState(null)
 
-  // Fetch all facilities from Supabase when the app first loads
   useEffect(() => {
     let cancelled = false
 
@@ -68,7 +61,6 @@ export function FacilitiesProvider({ children }) {
     }
   }, [])
 
-  // addFacility — inserts a new facility into Supabase and prepends it to local state
   async function addFacility(newFacility) {
     const { data, error } = await supabase
       .from('facilities')

@@ -1,12 +1,7 @@
-// Reports.jsx — The reports page ("/reports").
-// Shows orders that are "Completed" or "Report Sent" so the admin can track
-// which reports still need to be delivered.
-
 import { useOrders } from '../context/OrdersContext'
 import StatusBadge from '../components/StatusBadge'
 
 export default function Reports() {
-  // Get the live orders list from context (backed by Supabase)
   const { orders, loading, error } = useOrders()
 
   if (loading) return (
@@ -21,9 +16,6 @@ export default function Reports() {
     </div>
   )
 
-  // Filter inside the component (not at module level) so it uses the live orders array
-  // "Completed" = exam done, report not sent yet
-  // "Report Sent" = report delivered to the facility
   const reportOrders   = orders.filter(o => o.status === 'Completed' || o.status === 'Report Sent')
   const awaitingReport = orders.filter(o => o.status === 'Completed').length
   const reportsSent    = orders.filter(o => o.status === 'Report Sent').length
@@ -31,7 +23,6 @@ export default function Reports() {
   return (
     <div className="space-y-4">
 
-      {/* ── Stat cards ──────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-4">
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
@@ -55,7 +46,6 @@ export default function Reports() {
 
       </div>
 
-      {/* ── Report queue table ──────────────────────────────── */}
       <div className="bg-white rounded-xl border border-slate-200">
         <div className="px-5 py-4 border-b border-slate-100">
           <h3 className="font-semibold text-slate-800">Report Queue</h3>

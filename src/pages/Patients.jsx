@@ -46,7 +46,6 @@ export default function Patients() {
 
       {showAdd && <AddPatientModal onClose={() => setShowAdd(false)} />}
 
-      {/* ── Search bar ────────────────────────────────────────────────────── */}
       <div className="flex gap-3 items-center">
         <input
           value={search}
@@ -64,7 +63,6 @@ export default function Patients() {
         )}
       </div>
 
-      {/* ── Patient table ─────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-slate-200">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-semibold text-slate-800">Patients</h3>

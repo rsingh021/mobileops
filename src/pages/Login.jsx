@@ -11,7 +11,6 @@ export default function Login() {
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState(null)
 
-  // Already logged in — send straight to dashboard
   if (user) return <Navigate to="/" replace />
 
   async function handleSubmit(e) {
@@ -32,13 +31,11 @@ export default function Login() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
 
-        {/* Brand */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-slate-900">MobileOps</h1>
           <p className="text-sm text-slate-500 mt-1">Divine Imaging ATL</p>
         </div>
 
-        {/* Card */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-8 py-8">
           <h2 className="text-lg font-semibold text-slate-800 mb-6">Sign in</h2>
 

@@ -44,7 +44,6 @@ export default function Orders() {
 
   const [editingOrder, setEditingOrder] = useState(null)
 
-  // ── Filter / search state (all reset on page refresh) ─────────────────────
   const [search,         setSearch]         = useState('')
   const [statusFilter,   setStatusFilter]   = useState('All')
   const [billingFilter,  setBillingFilter]  = useState('All')
@@ -55,11 +54,9 @@ export default function Orders() {
   const [customFrom,     setCustomFrom]     = useState('')
   const [customTo,       setCustomTo]       = useState('')
 
-  // ── Pagination ─────────────────────────────────────────────────────────────
   const PAGE_SIZE = 25
   const [page, setPage] = useState(1)
 
-  // Reset to page 1 whenever filters change
   useEffect(() => { setPage(1) }, [search, statusFilter, billingFilter, facilityFilter, examFilter, sort, datePreset, customFrom, customTo])
 
   const hasActiveFilters =
@@ -83,7 +80,6 @@ export default function Orders() {
     setCustomTo('')
   }
 
-  // ── Derived visible list ───────────────────────────────────────────────────
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
 
@@ -156,10 +152,8 @@ export default function Orders() {
         />
       )}
 
-      {/* ── Search + controls bar ──────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 space-y-3">
 
-        {/* Row 1: search + sort + clear */}
         <div className="flex gap-3 items-center">
           <input
             value={search}
@@ -185,7 +179,6 @@ export default function Orders() {
           )}
         </div>
 
-        {/* Row 2: dropdown filters */}
         <div className="flex gap-2 flex-wrap">
 
           <FilterSelect
@@ -215,7 +208,6 @@ export default function Orders() {
 
         </div>
 
-        {/* Row 3: date range presets */}
         <div className="flex gap-1.5 flex-wrap items-center">
           <span className="text-xs font-medium text-slate-400 mr-1">Date:</span>
           {DATE_PRESETS.map(([val, label]) => (
@@ -252,7 +244,6 @@ export default function Orders() {
 
       </div>
 
-      {/* ── Orders table ──────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-slate-200">
 
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -330,7 +321,6 @@ export default function Orders() {
           </tbody>
         </table>
 
-        {/* ── Pagination controls ──────────────────────────────────────────── */}
         {totalPages > 1 && (
           <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between">
             <button

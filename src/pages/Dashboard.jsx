@@ -2,7 +2,6 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
 import StatusBadge from '../components/StatusBadge'
 
-// Returns Monday–Sunday bounds for the current week as YYYY-MM-DD strings
 function getThisWeek() {
   const today = new Date()
   const day   = today.getDay() // 0 = Sun
@@ -19,20 +18,17 @@ function getThisWeek() {
   return { weekStart: fmt(monday), weekEnd: fmt(sunday), todayStr: fmt(today) }
 }
 
-// Days between a date string and today (positive = in the past)
 function daysAgo(dateStr) {
   if (!dateStr) return null
   const diff = new Date().setHours(0,0,0,0) - new Date(dateStr).setHours(0,0,0,0)
   return Math.floor(diff / 86400000)
 }
 
-// Short weekday label from a YYYY-MM-DD string
 function weekdayLabel(dateStr) {
   if (!dateStr) return ''
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-// Human-readable relative time (e.g. "2 hours ago", "just now")
 function timeAgo(isoString) {
   if (!isoString) return '—'
   const seconds = Math.floor((Date.now() - new Date(isoString)) / 1000)
@@ -60,7 +56,6 @@ export default function Dashboard() {
 
   const { weekStart, weekEnd, todayStr } = getThisWeek()
 
-  // ── New account empty state ────────────────────────────────────────────────
   if (orders.length === 0) return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
       <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-4">
@@ -89,31 +84,23 @@ export default function Dashboard() {
     </div>
   )
 
-  // ── Derived data ───────────────────────────────────────────────────────────
-
-
-  // Reports overdue: exam is Completed but no report sent, and date is in the past
   const reportsOverdue = orders
     .filter(o => o.status === 'Completed' && o.date && o.date < todayStr)
     .sort((a, b) => new Date(a.date) - new Date(b.date)) // oldest first = most overdue
 
-  // This week's scheduled visits
   const thisWeek = orders
     .filter(o => o.status === 'Scheduled' && o.date && o.date >= weekStart && o.date <= weekEnd)
     .sort((a, b) => new Date(a.date) - new Date(b.date))
 
-  // Recently updated: sorted by updatedAt desc, take top 8
   const recentlyUpdated = [...orders]
     .sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? 0) - new Date(a.updatedAt ?? a.createdAt ?? 0))
     .slice(0, 8)
 
-  // Stat card values
   const activeOrders = orders.filter(o => o.status !== 'Billed').length
 
   return (
     <div className="space-y-6">
 
-      {/* ── Stat cards ────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-4">
         <StatCard
           label="Active Orders"
@@ -134,7 +121,6 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* ── Reports overdue ───────────────────────────────────────────────── */}
       <Section
         title="Reports Overdue"
         count={reportsOverdue.length}
@@ -183,7 +169,6 @@ export default function Dashboard() {
         )}
       </Section>
 
-      {/* ── This week's scheduled visits ──────────────────────────────────── */}
       <Section
         title="This Week's Scheduled Visits"
         count={thisWeek.length}
@@ -227,7 +212,6 @@ export default function Dashboard() {
         )}
       </Section>
 
-      {/* ── Recently updated orders ───────────────────────────────────────── */}
       <Section
         title="Recently Updated Orders"
         count={recentlyUpdated.length}
@@ -273,8 +257,6 @@ export default function Dashboard() {
     </div>
   )
 }
-
-// ── Small reusable components ──────────────────────────────────────────────────
 
 const accentValueColors = {
   amber: 'text-amber-600',

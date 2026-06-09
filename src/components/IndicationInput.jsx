@@ -1,7 +1,6 @@
 import { EXAM_INDICATIONS } from '../data/exams'
 
-// Combobox: shows exam-specific suggestions via <datalist> but accepts any free text.
-// The datalist updates automatically when examType changes.
+// <datalist> combobox — shows exam-specific suggestions but accepts any free text.
 export default function IndicationInput({ examType, value, onChange, className }) {
   const listId = `ind-${examType.replace(/[^a-z0-9]/gi, '-').toLowerCase()}`
   return (

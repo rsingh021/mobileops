@@ -23,7 +23,6 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Inactivity auto-signout — only active while logged in
   useEffect(() => {
     if (!user) return
 
@@ -36,7 +35,7 @@ export function AuthProvider({ children }) {
       if (Date.now() - lastActivity.current >= INACTIVITY_MS) {
         supabase.auth.signOut()
       }
-    }, 60_000) // check every minute
+    }, 60_000)
 
     return () => {
       events.forEach(e => window.removeEventListener(e, reset))

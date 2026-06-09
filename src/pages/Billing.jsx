@@ -1,7 +1,3 @@
-// Billing.jsx — The billing page ("/billing").
-// Shows the billing status of every order so the admin can see what's cleared,
-// what's in progress, and what hasn't been started.
-
 import { useOrders } from '../context/OrdersContext'
 
 const billingColors = {
@@ -11,7 +7,6 @@ const billingColors = {
 }
 
 export default function Billing() {
-  // Get the live orders list from context (backed by Supabase)
   const { orders, loading, error } = useOrders()
 
   if (loading) return (
@@ -26,7 +21,6 @@ export default function Billing() {
     </div>
   )
 
-  // Derive billing counts from the live orders array
   const ready      = orders.filter(o => o.billingStatus === 'Ready').length
   const pending    = orders.filter(o => o.billingStatus === 'Pending').length
   const notStarted = orders.filter(o => o.billingStatus === 'Not Started').length
@@ -34,7 +28,6 @@ export default function Billing() {
   return (
     <div className="space-y-4">
 
-      {/* ── Stat cards ──────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-4">
 
         <div className="bg-white rounded-xl border border-slate-200 p-5">
@@ -57,7 +50,6 @@ export default function Billing() {
 
       </div>
 
-      {/* ── Billing status table ────────────────────────────── */}
       <div className="bg-white rounded-xl border border-slate-200">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-semibold text-slate-800">Billing Status</h3>

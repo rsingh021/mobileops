@@ -1,10 +1,3 @@
-// EditOrderModal.jsx — A modal form that lets the admin edit any field on an existing order.
-// Used when someone needs to reschedule, fix an exam type, correct initials, etc.
-//
-// Props:
-//   order    — the full order object being edited
-//   onClose  — function called to close the modal (cancel or after successful save)
-
 import { useState } from 'react'
 import { useOrders } from '../context/OrdersContext'
 import { useFacilities } from '../context/FacilitiesContext'
@@ -20,7 +13,6 @@ export default function EditOrderModal({ order, onClose }) {
   const { facilities }  = useFacilities()
   const { toast }       = useToast()
 
-  // Pre-fill the form with the existing order's values
   const [formData, setFormData] = useState({
     facility:           order.facility,
     examType:           order.examType,
@@ -61,7 +53,7 @@ export default function EditOrderModal({ order, onClose }) {
         authNumber:         formData.authNumber.trim() || null,
       })
       toast('Order updated')
-      onClose() // Close the modal only after a successful save
+      onClose()
     } catch (err) {
       setSaveError(err.message)
       setSaving(false)
@@ -69,17 +61,14 @@ export default function EditOrderModal({ order, onClose }) {
   }
 
   return (
-    // Backdrop — clicking outside the modal closes it
     <div
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
-      {/* Modal panel — stopPropagation prevents clicks inside from closing the modal */}
       <div
         className="bg-white rounded-2xl shadow-xl w-full max-w-lg"
         onClick={e => e.stopPropagation()}
       >
-        {/* Modal header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="font-semibold text-slate-800">Edit Order</h2>
           <button
@@ -90,7 +79,6 @@ export default function EditOrderModal({ order, onClose }) {
           </button>
         </div>
 
-        {/* Error message from Supabase if save fails */}
         {saveError && (
           <div className="mx-6 mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
             {saveError}
@@ -99,7 +87,6 @@ export default function EditOrderModal({ order, onClose }) {
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
 
-          {/* ── Patient info (read-only) ───────────────────── */}
           {order.patient && (
             <div className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Patient</p>
@@ -113,7 +100,6 @@ export default function EditOrderModal({ order, onClose }) {
             </div>
           )}
 
-          {/* ── Facility ──────────────────────────────────── */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Facility</label>
             <select
@@ -128,7 +114,6 @@ export default function EditOrderModal({ order, onClose }) {
             </select>
           </div>
 
-          {/* ── Exam Type ─────────────────────────────────── */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Exam Type</label>
             <select
@@ -146,7 +131,6 @@ export default function EditOrderModal({ order, onClose }) {
             </select>
           </div>
 
-          {/* ── Clinical Indication ───────────────────────── */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Clinical Indication</label>
             <IndicationInput
@@ -157,7 +141,6 @@ export default function EditOrderModal({ order, onClose }) {
             />
           </div>
 
-          {/* ── Patient Initials ──────────────────────────── */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Patient Initials</label>
             <input
@@ -168,7 +151,6 @@ export default function EditOrderModal({ order, onClose }) {
             />
           </div>
 
-          {/* ── Status / Billing ──────────────────────────── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Status</label>
@@ -194,7 +176,6 @@ export default function EditOrderModal({ order, onClose }) {
             </div>
           </div>
 
-          {/* ── Date / Time ───────────────────────────────── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label>
@@ -220,7 +201,6 @@ export default function EditOrderModal({ order, onClose }) {
             </div>
           </div>
 
-          {/* ── Authorization (insurance orders only) ────── */}
           {order.patient?.insuranceType === 'Insurance' && (
             <div className="border-t border-slate-100 pt-4 space-y-3">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Authorization</p>
@@ -250,7 +230,6 @@ export default function EditOrderModal({ order, onClose }) {
             </div>
           )}
 
-          {/* ── Actions ───────────────────────────────────── */}
           <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
             <button
               type="button"

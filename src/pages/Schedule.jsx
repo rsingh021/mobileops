@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useOrders } from '../context/OrdersContext'
 import { useToast } from '../context/ToastContext'
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 function formatTime(t) {
   if (!t) return null
   const [h, m] = t.split(':').map(Number)
@@ -50,8 +48,6 @@ const MONTHS = [
   'July','August','September','October','November','December',
 ]
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export default function Schedule() {
   const { orders, loading, error, updateOrder } = useOrders()
   const navigate = useNavigate()
@@ -62,7 +58,6 @@ export default function Schedule() {
   const [viewMonth, setViewMonth] = useState(today.getMonth())
   const [selectedDay, setSelectedDay] = useState(toYMD(today))
 
-  // Reschedule modal
   const [rescheduling,    setRescheduling]    = useState(null)
   const [newDate,         setNewDate]         = useState('')
   const [newTime,         setNewTime]         = useState('')
@@ -87,7 +82,6 @@ export default function Schedule() {
     return map
   }
 
-  // All orders by date — used for the selected-day detail panel
   const ordersByDate = useMemo(() => buildDateMap(orders), [orders])
 
   const calendarByDate = useMemo(() => buildDateMap(orders), [orders])
@@ -140,7 +134,6 @@ export default function Schedule() {
   return (
     <div className="space-y-4">
 
-      {/* ── Reschedule modal ──────────────────────────────────────────────── */}
       {rescheduling && (
         <div
           className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
@@ -215,10 +208,8 @@ export default function Schedule() {
         </div>
       )}
 
-      {/* ── Calendar grid ─────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-slate-200">
 
-        {/* Month navigation */}
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <button
             onClick={prevMonth}
@@ -235,7 +226,6 @@ export default function Schedule() {
           </button>
         </div>
 
-        {/* Day-of-week headers */}
         <div className="grid grid-cols-7 border-b border-slate-100">
           {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
             <div key={d} className="py-2 text-center text-xs font-semibold text-slate-400 uppercase tracking-wide">
@@ -244,7 +234,6 @@ export default function Schedule() {
           ))}
         </div>
 
-        {/* Day cells */}
         <div className="grid grid-cols-7">
           {cells.map((cell, i) => {
             const ymd        = toYMD(cell.date)
@@ -290,7 +279,6 @@ export default function Schedule() {
         </div>
       </div>
 
-      {/* ── Selected day detail panel ─────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-slate-200">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-semibold text-slate-800">
