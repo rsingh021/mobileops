@@ -47,6 +47,24 @@ function toDB(order) {
   }
 }
 
+async function hasFacilityConflict({ facility, date, time, excludeId }) {
+  if (!time) return false
+
+  let query = supabase
+    .from('orders')
+    .select('id, facility')
+    .eq('date', date)
+    .eq('time', time)
+    .is('archived_at', null)
+    .neq('facility', facility)
+
+  if (excludeId) query = query.neq('id', excludeId)
+
+  const { data, error } = await query
+  if (error) throw error
+  return data.length > 0
+}
+
 const OrdersContext = createContext(null)
 
 export function OrdersProvider({ children }) {
@@ -119,6 +137,13 @@ export function OrdersProvider({ children }) {
   }, [])
 
   async function addOrder(newOrder) {
+    const conflict = await hasFacilityConflict({
+      facility: newOrder.facility,
+      date:     newOrder.date,
+      time:     newOrder.time,
+    })
+    if (conflict) throw new Error('The tech is already scheduled at a different facility at this date and time.')
+
     const { data, error } = await supabase
       .from('orders')
       .insert(toDB(newOrder))
@@ -131,6 +156,15 @@ export function OrdersProvider({ children }) {
   }
 
   async function updateOrder(id, changes) {
+    const current = orders.find(o => o.id === id)
+    const conflict = await hasFacilityConflict({
+      facility:  changes.facility !== undefined ? changes.facility : current?.facility,
+      date:      changes.date     !== undefined ? changes.date     : current?.date,
+      time:      changes.time     !== undefined ? changes.time     : current?.time,
+      excludeId: id,
+    })
+    if (conflict) throw new Error('The tech is already scheduled at a different facility at this date and time.')
+
     const dbChanges = {
       ...(changes.facility           !== undefined && { facility:            changes.facility }),
       ...(changes.examType           !== undefined && { exam_type:           changes.examType }),
